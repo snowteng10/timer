@@ -85,7 +85,7 @@
                     </span>
                     <span id="pending-count-badge" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                 </h2>
-                <p class="text-xs text-slate-400 mb-4">點擊清單中的「人員已抵達」以填寫卡號與二次備註並完成打卡。</p>
+                <p class="text-xs text-slate-400 mb-4">點擊清單中的「人員已抵達」以填寫卡號並完成打卡。</p>
                 
                 <div id="pending-container" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                     <div id="pending-empty" class="text-center py-8 text-slate-400 text-xs">
@@ -165,7 +165,7 @@
             <h3 class="font-bold text-lg text-slate-900 mb-1 flex items-center">
                 <i class="fa-solid fa-id-card text-indigo-600 mr-2"></i> 第二階段抵達打卡
             </h3>
-            <p class="text-xs text-slate-400 mb-4">請確認姓名，並可輸入卡號與填寫額外備註</p>
+            <p class="text-xs text-slate-400 mb-4">請確認姓名，並輸入接藥人卡號</p>
             
             <div class="space-y-3 mb-5">
                 <div>
@@ -173,12 +173,8 @@
                     <input type="text" id="modal-arrive-name" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">新卡號 (另一人的卡號)</label>
-                    <input type="text" id="modal-arrive-card" placeholder="請輸入卡號..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">二次打卡備註欄 (獨立填寫)</label>
-                    <input type="text" id="modal-arrive-note" placeholder="請在此輸入二次打卡的備註文字..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-medium text-slate-500 mb-1">接藥人卡號</label>
+                    <input type="text" id="modal-arrive-card" placeholder="請輸入接藥人卡號..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
             </div>
 
@@ -252,7 +248,6 @@
         const arriveModalContent = document.getElementById('arrive-modal-content');
         const modalArriveName = document.getElementById('modal-arrive-name');
         const modalArriveCard = document.getElementById('modal-arrive-card');
-        const modalArriveNote = document.getElementById('modal-arrive-note');
         const modalCancelBtn = document.getElementById('modal-cancel-btn');
         const modalConfirmBtn = document.getElementById('modal-confirm-btn');
 
@@ -337,7 +332,7 @@
                 name: personName,
                 notifyTime: notifyTimeStr,
                 notifyTimestamp: now.getTime(),
-                note: noteText, // 第一次打卡的備註
+                note: noteText, // 保留第一次打卡的備註
                 dateStr: now.toLocaleDateString()
             };
 
@@ -358,8 +353,7 @@
 
             currentTargetId = id;
             modalArriveName.value = item.name;
-            modalArriveCard.value = '';
-            modalArriveNote.value = ''; // 每次打開保持空白，讓使用者獨立輸入二次備註，不覆蓋第一次備註
+            modalArriveCard.value = ''; // 卡號欄位保持空白
 
             arriveModal.classList.remove('hidden');
             setTimeout(() => {
@@ -384,15 +378,14 @@
             if (e.target === arriveModal) closeArrivalModal();
         });
 
-        // Confirm Arrival with Card & Separate Second Note
+        // Confirm Arrival with Card Number
         modalConfirmBtn.addEventListener('click', () => {
             const index = pendingList.findIndex(item => item.id === currentTargetId);
             if (index === -1) return;
 
             const item = pendingList[index];
             const finalName = modalArriveName.value.trim() || item.name;
-            const cardNum = modalArriveCard.value.trim() || '';
-            const secondNote = modalArriveNote.value.trim() || ''; // 第二次打卡專屬備註
+            const cardNum = modalArriveCard.value.trim() || ''; // 接藥人卡號
 
             const now = new Date();
             const arrivalTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
@@ -405,12 +398,11 @@
             const completedItem = {
                 id: item.id,
                 name: finalName,
-                cardNumber: cardNum,
+                cardNumber: cardNum,           // 接藥人卡號
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
-                note: item.note,             // 步驟一的原始備註
-                secondNote: secondNote,       // 步驟二的二次備註
+                note: item.note,               // 保留步驟一的原始備註
                 completedAt: now.toLocaleString()
             };
 
@@ -455,7 +447,7 @@
             }
 
             let csvContent = '\uFEFF';
-            csvContent += '項次,人員名稱,新卡號,通知時間,抵達時間,等候時間(分鐘),初次備註,二次打卡備註,完成時間\n';
+            csvContent += '項次,人員名稱,接藥人卡號,通知時間,抵達時間,等候時間(分鐘),備註說明,完成時間\n';
 
             completedRecords.forEach((rec, index) => {
                 const row = [
@@ -466,7 +458,6 @@
                     rec.arrivalTime,
                     rec.waitingMinutes,
                     `"${(rec.note || '').replace(/"/g, '""')}"`,
-                    `"${(rec.secondNote || '').replace(/"/g, '""')}"`,
                     `"${rec.completedAt}"`
                 ];
                 csvContent += row.join(',') + '\n';
@@ -537,7 +528,7 @@
                             <i class="fa-solid fa-bell mr-1"></i>${item.notifyTime}
                         </span>
                     </div>
-                    ${item.note ? `<div class="text-xs text-slate-500 italic"><i class="fa-solid fa-note-sticky mr-1"></i>初次備註：${escapeHtml(item.note)}</div>` : ''}
+                    ${item.note ? `<div class="text-xs text-slate-500 italic"><i class="fa-solid fa-note-sticky mr-1"></i>備註：${escapeHtml(item.note)}</div>` : ''}
                     <div class="flex items-center space-x-2 pt-1">
                         <button onclick="openArrivalModal(${item.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow transition flex items-center justify-center space-x-1">
                             <i class="fa-solid fa-check-circle"></i>
@@ -581,7 +572,7 @@
                     <div class="space-y-1">
                         <div class="flex items-center space-x-2 flex-wrap gap-y-1">
                             <span class="font-bold text-slate-800 text-sm">${escapeHtml(rec.name)}</span>
-                            ${rec.cardNumber ? `<span class="text-xs px-2 py-0.5 rounded border font-mono font-medium bg-slate-100 text-slate-700 border-slate-300">卡號: ${escapeHtml(rec.cardNumber)}</span>` : ''}
+                            ${rec.cardNumber ? `<span class="text-xs px-2 py-0.5 rounded border font-mono font-medium bg-slate-100 text-slate-700 border-slate-300">接藥人卡號: ${escapeHtml(rec.cardNumber)}</span>` : ''}
                             <span class="text-xs px-2.5 py-0.5 rounded-full border font-semibold bg-indigo-50 text-indigo-700 border-indigo-200">
                                 等候: ${rec.waitingMinutes} 分鐘
                             </span>
@@ -590,8 +581,7 @@
                             <span><i class="fa-solid fa-bell mr-1 text-slate-400"></i>通知: ${rec.notifyTime}</span>
                             <span><i class="fa-solid fa-person-walking-arrow-right mr-1 text-slate-400"></i>抵達: ${rec.arrivalTime}</span>
                         </div>
-                        ${rec.note ? `<div class="text-xs text-slate-400 italic"><i class="fa-solid fa-note-sticky mr-1"></i>初次備註：${escapeHtml(rec.note)}</div>` : ''}
-                        ${rec.secondNote ? `<div class="text-xs text-emerald-600 italic"><i class="fa-solid fa-comment-dots mr-1"></i>二次備註：${escapeHtml(rec.secondNote)}</div>` : ''}
+                        ${rec.note ? `<div class="text-xs text-slate-400 italic"><i class="fa-solid fa-note-sticky mr-1"></i>備註：${escapeHtml(rec.note)}</div>` : ''}
                     </div>
                     <div class="flex items-center justify-between sm:justify-end space-x-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
                         <span class="text-[10px] text-slate-400 font-mono">${rec.completedAt}</span>
