@@ -3,236 +3,625 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人員抵達與等候打卡系統</title>
+    <title>人員抵達與等候時間打卡與統計系統</title>
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @media print {
+            body {
+                background: white !important;
+            }
+            header, .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+        }
+        .print-only {
+            display: none;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col items-center p-4 sm:p-8">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- 頂部標題 -->
-    <header class="max-w-xl w-full mb-6 flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-        <h1 class="text-lg font-bold text-indigo-600 flex items-center gap-2">
-            ⏱️ <span>人員抵達打卡系統</span>
-        </h1>
-        <div id="live-clock" class="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-mono font-medium"></div>
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm no-print">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md">
+                    <i class="fa-solid fa-business-time text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
+                    <p class="text-xs text-slate-500">通知時間紀錄 ➔ 實際抵達打卡 ➔ 後台統計與資料匯出</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div id="live-clock" class="text-lg font-bold text-indigo-600 font-mono">00:00:00</div>
+                <div id="live-date" class="text-xs text-slate-400">YYYY-MM-DD</div>
+            </div>
+        </div>
     </header>
 
-    <!-- 主操作區 -->
-    <main class="max-w-xl w-full flex flex-col gap-6">
-
-        <!-- 步驟一：發送/記錄通知時間 -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center gap-2 mb-4">
-                <span class="bg-indigo-100 text-indigo-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">1</span>
-                <h2 class="font-bold text-lg text-slate-700">發送 / 記錄通知時間</h2>
-            </div>
+    <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Panel: Action & Active Pending List -->
+        <div class="lg:col-span-1 space-y-6 no-print">
             
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">人員 / 訪客名稱</label>
-                    <input type="text" id="person-name" placeholder="例如：張先生 / 外送員A" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">備註說明 (選填)</label>
-                    <input type="text" id="person-note" placeholder="例如：會議室A / 文件簽收" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <!-- Step 1: Record Notification Time -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-4 flex items-center">
+                    <span class="bg-indigo-100 text-indigo-600 w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 font-bold">1</span> 
+                    步驟一：發送/記錄通知時間
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="person-name" class="block text-xs font-medium text-slate-500 mb-1">人員 / 訪客名稱</label>
+                        <input type="text" id="person-name" placeholder="例如：張先生 / 外送員A" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                    </div>
+                    <div>
+                        <label for="note-text" class="block text-xs font-medium text-slate-500 mb-1">備註說明 (選填)</label>
+                        <input type="text" id="note-text" placeholder="例如：會議室A / 文件簽收" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                    </div>
+                    <button id="notify-btn" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition transform active:scale-95 flex items-center justify-center space-x-2 text-sm">
+                        <i class="fa-solid fa-bell"></i>
+                        <span>記錄通知時間 (開始計時)</span>
+                    </button>
                 </div>
             </div>
 
-            <button onclick="recordNotification()" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2">
-                🔔 記錄通知時間 (開始計時)
-            </button>
+            <!-- Pending Arrivals Box (Waiting for Step 2) -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span class="flex items-center">
+                        <i class="fa-solid fa-hourglass-half text-amber-500 mr-2"></i> 待抵達清單 (步驟二)
+                    </span>
+                    <span id="pending-count-badge" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                </h2>
+                <p class="text-xs text-slate-400 mb-4">點擊清單中的「人員已抵達」以填寫卡號與二次備註並完成打卡。</p>
+                
+                <div id="pending-container" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    <div id="pending-empty" class="text-center py-8 text-slate-400 text-xs">
+                        目前沒有等待抵達的人員
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- 步驟二：待抵達清單 -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="bg-amber-100 text-amber-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">2</span>
-                    <h2 class="font-bold text-lg text-slate-700">待抵達清單</h2>
-                </div>
-                <span id="pending-count-badge" class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">0</span>
-            </div>
+        <!-- Right Panel: Statistics Dashboard & Complete History -->
+        <div class="lg:col-span-2 space-y-6 w-full">
             
-            <p class="text-xs text-slate-400 mb-3">人員抵達後，請點擊下方清單進行第二階段打卡。</p>
-
-            <div id="pending-list" class="space-y-2 max-h-96 overflow-y-auto pr-1">
-                <div class="text-center text-slate-400 py-10 text-sm">目前沒有等待抵達的人員</div>
-            </div>
-        </div>
-
-        <!-- 已完成清單區塊 -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="bg-emerald-100 text-emerald-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✓</span>
-                    <h2 class="font-bold text-lg text-slate-700">已完成打卡紀錄</h2>
+            <!-- Statistics Dashboard Cards -->
+            <div class="grid grid-cols-3 gap-4 no-print">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">完成打卡總數</span>
+                    <span id="stat-total" class="text-2xl font-bold text-slate-800">0</span>
                 </div>
-                <button onclick="clearHistory()" class="text-xs text-slate-400 hover:text-red-500 transition">清除紀錄</button>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">平均等候時間</span>
+                    <span id="stat-avg-time" class="text-2xl font-bold text-indigo-600">0 分鐘</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">最長等候時間</span>
+                    <span id="stat-max-time" class="text-2xl font-bold text-amber-600">0 分鐘</span>
+                </div>
             </div>
 
-            <div id="history-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
-                <div class="text-center text-slate-400 py-6 text-sm">尚無打卡完成紀錄</div>
+            <!-- History Records Section -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-[520px]">
+                <!-- Header with Export Actions -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-3">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-chart-line text-indigo-500 mr-2"></i> 後台統計與已完成紀錄
+                    </h2>
+                    <div class="flex items-center space-x-2 no-print">
+                        <button id="export-csv-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-2 rounded-xl transition flex items-center shadow-sm">
+                            <i class="fa-solid fa-file-csv mr-1.5 text-sm"></i> 匯出 CSV
+                        </button>
+                        <button id="print-pdf-btn" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-2 rounded-xl transition flex items-center shadow-sm">
+                            <i class="fa-solid fa-print mr-1.5 text-sm"></i> 列印 / PDF
+                        </button>
+                        <button id="clear-history" class="text-xs text-rose-500 hover:text-rose-700 font-medium px-2 py-1 rounded transition flex items-center" title="清空紀錄">
+                            <i class="fa-solid fa-trash-can mr-1"></i> 清空
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Print Title Header (Visible only when printing) -->
+                <div class="print-only mb-4">
+                    <h2 class="text-xl font-bold">人員抵達與等候時間打卡統計報表</h2>
+                    <p class="text-xs text-slate-500" id="print-date-label">列印日期：2026-00-00</p>
+                </div>
+
+                <!-- Records Scroll Area -->
+                <div id="records-container" class="overflow-y-auto flex-grow space-y-3 pr-1">
+                    <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-400 py-12">
+                        <i class="fa-solid fa-clipboard-list text-4xl mb-3 text-slate-300"></i>
+                        <p class="text-sm">尚無完成抵達的打卡紀錄</p>
+                        <p class="text-xs text-slate-400 mt-1">請先進行「步驟一」記錄通知，再點擊抵達打卡</p>
+                    </div>
+                </div>
             </div>
+
         </div>
 
     </main>
 
-    <!-- 第二階段抵達打卡彈窗 (修改名字與空白備註) -->
-    <div id="arrive-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 class="font-bold text-lg text-slate-800 mb-4">✨ 確認人員抵達資訊</h3>
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 no-print">
+        <p>人員抵達與等候時間打卡系統 &copy; 2026 - 支援 CSV 匯出與列印報表</p>
+    </footer>
+
+    <!-- Arrival Details & Card Number Modal -->
+    <div id="arrive-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="arrive-modal-content">
+            <h3 class="font-bold text-lg text-slate-900 mb-1 flex items-center">
+                <i class="fa-solid fa-id-card text-indigo-600 mr-2"></i> 第二階段抵達打卡
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">請確認姓名，並可輸入卡號與填寫額外備註</p>
+            
             <div class="space-y-3 mb-5">
                 <div>
                     <label class="block text-xs font-medium text-slate-500 mb-1">抵達人員姓名</label>
-                    <input type="text" id="modal-arrive-name" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="modal-arrive-name" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">備註欄 (空白格可填寫)</label>
-                    <input type="text" id="modal-arrive-note" placeholder="請在此輸入備註文字..." class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-medium text-slate-500 mb-1">新卡號 (另一人的卡號)</label>
+                    <input type="text" id="modal-arrive-card" placeholder="請輸入卡號..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">二次打卡備註欄 (獨立填寫)</label>
+                    <input type="text" id="modal-arrive-note" placeholder="請在此輸入二次打卡的備註文字..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
             </div>
-            <div class="flex gap-2">
-                <button onclick="closeArriveModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition text-sm">取消</button>
-                <button onclick="confirmArrival()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition text-sm">確認打卡</button>
+
+            <div class="flex space-x-2">
+                <button id="modal-cancel-btn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-medium transition">
+                    取消
+                </button>
+                <button id="modal-confirm-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition">
+                    確認打卡
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript 邏輯 -->
+    <!-- General Alert Modal -->
+    <div id="custom-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
+            <div class="flex items-center space-x-3 mb-4">
+                <div id="modal-icon-container" class="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600">
+                    <i id="modal-icon" class="fa-solid fa-info"></i>
+                </div>
+                <div>
+                    <h3 id="modal-title" class="font-bold text-slate-900">提示訊息</h3>
+                    <p id="modal-subtitle" class="text-xs text-slate-400">系統狀態通知</p>
+                </div>
+            </div>
+            <p id="modal-message" class="text-sm text-slate-600 mb-6 leading-relaxed"></p>
+            <div class="flex justify-end">
+                <button id="modal-close-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition">
+                    確定
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        let pendingList = JSON.parse(localStorage.getItem('pending_list')) || [];
-        let historyList = JSON.parse(localStorage.getItem('history_list')) || [];
+        // DOM Elements
+        const liveClockEl = document.getElementById('live-clock');
+        const liveDateEl = document.getElementById('live-date');
+        const personNameInput = document.getElementById('person-name');
+        const noteTextInput = document.getElementById('note-text');
+        const notifyBtn = document.getElementById('notify-btn');
+        
+        const pendingContainer = document.getElementById('pending-container');
+        const pendingCountBadge = document.getElementById('pending-count-badge');
+
+        const recordsContainer = document.getElementById('records-container');
+        const emptyState = document.getElementById('empty-state');
+        const clearHistoryBtn = document.getElementById('clear-history');
+        
+        const statTotal = document.getElementById('stat-total');
+        const statAvgTime = document.getElementById('stat-avg-time');
+        const statMaxTime = document.getElementById('stat-max-time');
+
+        // Export Buttons
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        const printPdfBtn = document.getElementById('print-pdf-btn');
+        const printDateLabel = document.getElementById('print-date-label');
+
+        // Modal Elements
+        const customModal = document.getElementById('custom-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalTitle = document.getElementById('modal-title');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const modalContent = document.getElementById('modal-content');
+        const modalIconContainer = document.getElementById('modal-icon-container');
+        const modalIcon = document.getElementById('modal-icon');
+
+        // Arrive Modal Elements
+        const arriveModal = document.getElementById('arrive-modal');
+        const arriveModalContent = document.getElementById('arrive-modal-content');
+        const modalArriveName = document.getElementById('modal-arrive-name');
+        const modalArriveCard = document.getElementById('modal-arrive-card');
+        const modalArriveNote = document.getElementById('modal-arrive-note');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+
+        // State variables
+        let pendingList = []; 
+        let completedRecords = []; 
         let currentTargetId = null;
 
-        updateClock();
-        setInterval(updateClock, 1000);
-        renderAll();
+        function initApp() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            loadData();
+            
+            const now = new Date();
+            printDateLabel.textContent = `列印日期：${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+        }
 
         function updateClock() {
             const now = new Date();
-            document.getElementById('live-clock').innerText = now.toLocaleTimeString('zh-TW');
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            liveClockEl.textContent = `${h}:${m}:${s}`;
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            liveDateEl.textContent = `${year}-${month}-${day}`;
         }
 
-        function recordNotification() {
-            const name = document.getElementById('person-name').value.trim();
-            const note = document.getElementById('person-note').value.trim();
+        function showModal(title, message, type = 'info') {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
             
-            if (!name) {
-                alert('請輸入人員或訪客名稱！');
+            modalIconContainer.className = "w-10 h-10 rounded-full flex items-center justify-center ";
+            if (type === 'success') {
+                modalIconContainer.classList.add('bg-emerald-100', 'text-emerald-600');
+                modalIcon.className = "fa-solid fa-check";
+            } else if (type === 'warning') {
+                modalIconContainer.classList.add('bg-amber-100', 'text-amber-600');
+                modalIcon.className = "fa-solid fa-triangle-exclamation";
+            } else {
+                modalIconContainer.classList.add('bg-indigo-100', 'text-indigo-600');
+                modalIcon.className = "fa-solid fa-info";
+            }
+
+            customModal.classList.remove('hidden');
+            setTimeout(() => {
+                customModal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function hideModal() {
+            customModal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                customModal.classList.add('hidden');
+            }, 300);
+        }
+
+        modalCloseBtn.addEventListener('click', hideModal);
+        customModal.addEventListener('click', (e) => {
+            if (e.target === customModal) hideModal();
+        });
+
+        notifyBtn.addEventListener('click', () => {
+            const personName = personNameInput.value.trim();
+            if (!personName) {
+                showModal('欄位未填寫', '請先輸入人員或訪客名稱！', 'warning');
                 return;
             }
 
+            const now = new Date();
+            const notifyTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            const noteText = noteTextInput.value.trim() || '';
+
             const newItem = {
-                id: 'ID_' + Date.now(),
-                name: name,
-                note: note,
-                notifyTime: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                timestamp: Date.now()
+                id: Date.now(),
+                name: personName,
+                notifyTime: notifyTimeStr,
+                notifyTimestamp: now.getTime(),
+                note: noteText, // 第一次打卡的備註
+                dateStr: now.toLocaleDateString()
             };
 
             pendingList.push(newItem);
-            saveAndRender();
+            saveData();
+            renderPendingList();
 
-            document.getElementById('person-name').value = '';
-            document.getElementById('person-note').value = '';
-        }
+            personNameInput.value = '';
+            noteTextInput.value = '';
 
-        function openArriveModal(id) {
+            showModal('通知時間已記錄', `已成功建立 ${personName} 的通知紀錄 (${notifyTimeStr})，等待人員抵達打卡。`, 'success');
+        });
+
+        // Open Second Step Arrival Modal
+        window.openArrivalModal = function(id) {
+            const item = pendingList.find(i => i.id === id);
+            if (!item) return;
+
             currentTargetId = id;
-            const item = pendingList.find(p => p.id === id);
-            if (item) {
-                document.getElementById('modal-arrive-name').value = item.name;
-                document.getElementById('modal-arrive-note').value = item.note || '';
-                document.getElementById('arrive-modal').classList.remove('hidden');
+            modalArriveName.value = item.name;
+            modalArriveCard.value = '';
+            modalArriveNote.value = ''; // 每次打開保持空白，讓使用者獨立輸入二次備註，不覆蓋第一次備註
+
+            arriveModal.classList.remove('hidden');
+            setTimeout(() => {
+                arriveModal.classList.remove('opacity-0');
+                arriveModalContent.classList.remove('scale-95');
+                arriveModalContent.classList.add('scale-100');
+            }, 10);
+        };
+
+        function closeArrivalModal() {
+            arriveModal.classList.add('opacity-0');
+            arriveModalContent.classList.remove('scale-100');
+            arriveModalContent.classList.add('scale-95');
+            setTimeout(() => {
+                arriveModal.classList.add('hidden');
+                currentTargetId = null;
+            }, 300);
+        }
+
+        modalCancelBtn.addEventListener('click', closeArrivalModal);
+        arriveModal.addEventListener('click', (e) => {
+            if (e.target === arriveModal) closeArrivalModal();
+        });
+
+        // Confirm Arrival with Card & Separate Second Note
+        modalConfirmBtn.addEventListener('click', () => {
+            const index = pendingList.findIndex(item => item.id === currentTargetId);
+            if (index === -1) return;
+
+            const item = pendingList[index];
+            const finalName = modalArriveName.value.trim() || item.name;
+            const cardNum = modalArriveCard.value.trim() || '';
+            const secondNote = modalArriveNote.value.trim() || ''; // 第二次打卡專屬備註
+
+            const now = new Date();
+            const arrivalTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            const arrivalTimestamp = now.getTime();
+
+            const diffMs = arrivalTimestamp - item.notifyTimestamp;
+            const diffMinutesExact = diffMs / 1000 / 60;
+            const diffMinutesRounded = Math.round(diffMinutesExact * 10) / 10;
+
+            const completedItem = {
+                id: item.id,
+                name: finalName,
+                cardNumber: cardNum,
+                notifyTime: item.notifyTime,
+                arrivalTime: arrivalTimeStr,
+                waitingMinutes: diffMinutesRounded,
+                note: item.note,             // 步驟一的原始備註
+                secondNote: secondNote,       // 步驟二的二次備註
+                completedAt: now.toLocaleString()
+            };
+
+            pendingList.splice(index, 1);
+            completedRecords.unshift(completedItem);
+
+            saveData();
+            renderPendingList();
+            renderCompletedRecords();
+            closeArrivalModal();
+
+            showModal('抵達打卡完成', `${finalName} 已抵達！等候時間共計約 ${diffMinutesRounded} 分鐘。`, 'success');
+        });
+
+        window.removePending = function(id) {
+            pendingList = pendingList.filter(item => item.id !== id);
+            saveData();
+            renderPendingList();
+        };
+
+        window.deleteRecord = function(id) {
+            completedRecords = completedRecords.filter(r => r.id !== id);
+            saveData();
+            renderCompletedRecords();
+        };
+
+        clearHistoryBtn.addEventListener('click', () => {
+            if (completedRecords.length === 0) return;
+            if (confirm('確定要清空所有的後台統計與已完成紀錄嗎？')) {
+                completedRecords = [];
+                saveData();
+                renderCompletedRecords();
+                showModal('已清空', '後台統計紀錄已被全部清除。', 'info');
             }
-        }
+        });
 
-        function closeArriveModal() {
-            document.getElementById('arrive-modal').classList.add('hidden');
-            currentTargetId = null;
-        }
-
-        function confirmArrival() {
-            const arriveName = document.getElementById('modal-arrive-name').value.trim();
-            const arriveNote = document.getElementById('modal-arrive-note').value.trim();
-
-            const index = pendingList.findIndex(p => p.id === currentTargetId);
-            if (index !== -1) {
-                const item = pendingList.splice(index, 1)[0];
-                const arriveTimeDate = new Date();
-                const arriveTimeString = arriveTimeDate.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                
-                const waitMinutes = Math.max(0, Math.round((arriveTimeDate.getTime() - item.timestamp) / 60000));
-
-                const completedItem = {
-                    id: item.id,
-                    arriveName: arriveName || item.name,
-                    notifyTime: item.notifyTime,
-                    arriveTime: arriveTimeString,
-                    waitMinutes: waitMinutes,
-                    note: arriveNote
-                };
-
-                historyList.unshift(completedItem);
-                saveAndRender();
+        // Export to CSV Feature
+        exportCsvBtn.addEventListener('click', () => {
+            if (completedRecords.length === 0) {
+                showModal('無法匯出', '目前沒有任何已完成的打卡紀錄可供匯出。', 'warning');
+                return;
             }
 
-            closeArriveModal();
-        }
+            let csvContent = '\uFEFF';
+            csvContent += '項次,人員名稱,新卡號,通知時間,抵達時間,等候時間(分鐘),初次備註,二次打卡備註,完成時間\n';
 
-        function clearHistory() {
-            if (confirm('確定要清除所有已完成的打卡紀錄嗎？')) {
-                historyList = [];
-                saveAndRender();
+            completedRecords.forEach((rec, index) => {
+                const row = [
+                    index + 1,
+                    `"${rec.name.replace(/"/g, '""')}"`,
+                    `"${(rec.cardNumber || '').replace(/"/g, '""')}"`,
+                    rec.notifyTime,
+                    rec.arrivalTime,
+                    rec.waitingMinutes,
+                    `"${(rec.note || '').replace(/"/g, '""')}"`,
+                    `"${(rec.secondNote || '').replace(/"/g, '""')}"`,
+                    `"${rec.completedAt}"`
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `人員等候時間打卡統計_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showModal('匯出成功', '已成功下載打卡紀錄 CSV 檔案。', 'success');
+        });
+
+        // Print / PDF Export Feature
+        printPdfBtn.addEventListener('click', () => {
+            if (completedRecords.length === 0) {
+                showModal('無法列印', '目前沒有任何已完成的打卡紀錄可供列印。', 'warning');
+                return;
             }
+            window.print();
+        });
+
+        function saveData() {
+            localStorage.setItem('two_step_pending', JSON.stringify(pendingList));
+            localStorage.setItem('two_step_completed', JSON.stringify(completedRecords));
         }
 
-        function saveAndRender() {
-            localStorage.setItem('pending_list', JSON.stringify(pendingList));
-            localStorage.setItem('history_list', JSON.stringify(historyList));
-            renderAll();
+        function loadData() {
+            const savedPending = localStorage.getItem('two_step_pending');
+            const savedCompleted = localStorage.getItem('two_step_completed');
+
+            if (savedPending) {
+                try { pendingList = JSON.parse(savedPending); } catch (e) { pendingList = []; }
+            }
+            if (savedCompleted) {
+                try { completedRecords = JSON.parse(savedCompleted); } catch (e) { completedRecords = []; }
+            }
+
+            renderPendingList();
+            renderCompletedRecords();
         }
 
-        function renderAll() {
-            // 渲染待抵達清單
-            const pendingContainer = document.getElementById('pending-list');
-            document.getElementById('pending-count-badge').innerText = pendingList.length;
+        function renderPendingList() {
+            pendingContainer.innerHTML = '';
+            pendingCountBadge.textContent = pendingList.length;
 
             if (pendingList.length === 0) {
-                pendingContainer.innerHTML = `<div class="text-center text-slate-400 py-10 text-sm">目前沒有等待抵達的人員</div>`;
-            } else {
-                pendingContainer.innerHTML = pendingList.map(item => `
-                    <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl flex items-center justify-between gap-3">
-                        <div>
-                            <div class="font-bold text-sm text-slate-700">${item.name}</div>
-                            <div class="text-xs text-slate-400 mt-0.5">通知時間：${item.notifyTime} ${item.note ? ' | 備註：' + item.note : ''}</div>
-                        </div>
-                        <button onclick="openArriveModal('${item.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition shrink-0">
-                            人員已抵達
-                        </button>
+                pendingContainer.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-xs">
+                        目前沒有等待抵達的人員
                     </div>
-                `).join('');
+                `;
+                return;
             }
 
-            // 渲染已完成紀錄
-            const historyContainer = document.getElementById('history-list');
-            if (historyList.length === 0) {
-                historyContainer.innerHTML = `<div class="text-center text-slate-400 py-6 text-sm">尚無打卡完成紀錄</div>`;
-            } else {
-                historyContainer.innerHTML = historyList.map(item => `
-                    <div class="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div>
-                            <div class="font-bold text-sm text-slate-700">${item.arriveName} <span class="text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full ml-1">等候 ${item.waitMinutes} 分鐘</span></div>
-                            <div class="text-xs text-slate-400 mt-0.5">通知：${item.notifyTime} ➜ 抵達：${item.arriveTime} ${item.note ? ' | 備註：' + item.note : ''}</div>
-                        </div>
+            pendingList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-amber-50/60 border border-amber-200/80 rounded-xl p-3.5 flex flex-col space-y-2 transition hover:shadow-sm";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-800 text-sm">${escapeHtml(item.name)}</span>
+                        <span class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-mono font-medium">
+                            <i class="fa-solid fa-bell mr-1"></i>${item.notifyTime}
+                        </span>
                     </div>
-                `).join('');
-            }
+                    ${item.note ? `<div class="text-xs text-slate-500 italic"><i class="fa-solid fa-note-sticky mr-1"></i>初次備註：${escapeHtml(item.note)}</div>` : ''}
+                    <div class="flex items-center space-x-2 pt-1">
+                        <button onclick="openArrivalModal(${item.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow transition flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-check-circle"></i>
+                            <span>人員已抵達 (打卡)</span>
+                        </button>
+                        <button onclick="removePending(${item.id})" class="text-slate-400 hover:text-rose-600 p-2 text-xs transition" title="取消此筆">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                `;
+                pendingContainer.appendChild(card);
+            });
         }
+
+        function renderCompletedRecords() {
+            recordsContainer.innerHTML = '';
+
+            if (completedRecords.length === 0) {
+                emptyState.classList.remove('hidden');
+                statTotal.textContent = '0';
+                statAvgTime.textContent = '0 分鐘';
+                statMaxTime.textContent = '0 分鐘';
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            let totalMinutes = 0;
+            let maxMinutes = 0;
+
+            completedRecords.forEach(rec => {
+                totalMinutes += rec.waitingMinutes;
+                if (rec.waitingMinutes > maxMinutes) {
+                    maxMinutes = rec.waitingMinutes;
+                }
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 border border-slate-200 rounded-xl p-4 transition hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                            <span class="font-bold text-slate-800 text-sm">${escapeHtml(rec.name)}</span>
+                            ${rec.cardNumber ? `<span class="text-xs px-2 py-0.5 rounded border font-mono font-medium bg-slate-100 text-slate-700 border-slate-300">卡號: ${escapeHtml(rec.cardNumber)}</span>` : ''}
+                            <span class="text-xs px-2.5 py-0.5 rounded-full border font-semibold bg-indigo-50 text-indigo-700 border-indigo-200">
+                                等候: ${rec.waitingMinutes} 分鐘
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-500 flex items-center space-x-3 flex-wrap">
+                            <span><i class="fa-solid fa-bell mr-1 text-slate-400"></i>通知: ${rec.notifyTime}</span>
+                            <span><i class="fa-solid fa-person-walking-arrow-right mr-1 text-slate-400"></i>抵達: ${rec.arrivalTime}</span>
+                        </div>
+                        ${rec.note ? `<div class="text-xs text-slate-400 italic"><i class="fa-solid fa-note-sticky mr-1"></i>初次備註：${escapeHtml(rec.note)}</div>` : ''}
+                        ${rec.secondNote ? `<div class="text-xs text-emerald-600 italic"><i class="fa-solid fa-comment-dots mr-1"></i>二次備註：${escapeHtml(rec.secondNote)}</div>` : ''}
+                    </div>
+                    <div class="flex items-center justify-between sm:justify-end space-x-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
+                        <span class="text-[10px] text-slate-400 font-mono">${rec.completedAt}</span>
+                        <button onclick="deleteRecord(${rec.id})" class="text-slate-400 hover:text-rose-600 p-1 transition no-print" title="刪除此筆">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                `;
+                recordsContainer.appendChild(card);
+            });
+
+            const avgMinutes = Math.round((totalMinutes / completedRecords.length) * 10) / 10;
+            statTotal.textContent = completedRecords.length;
+            statAvgTime.textContent = `${avgMinutes} 分鐘`;
+            statMaxTime.textContent = `${maxMinutes} 分鐘`;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        window.onload = initApp;
     </script>
 </body>
 </html>
