@@ -1,38 +1,565 @@
-function doPost(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var data = JSON.parse(e.postData.contents);
-  
-  // 欄位順序: ID, Name (初始/通知名), ArriveName (抵達時填寫的名), Role, NotifyTime, ArriveTime, WaitMinutes, Status, Count
-  sheet.appendRow([
-    data.id,
-    data.name,
-    data.arriveName || data.name,
-    data.role,
-    data.notifyTime,
-    data.arriveTime,
-    data.waitMinutes,
-    data.status,
-    data.count || 1
-  ]);
-  
-  return ContentService.createTextOutput(JSON.stringify({"result": "success"}))
-         .setMimeType(ContentService.MimeType.JSON);
-}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人員抵達與等候時間打卡與統計系統</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @media print {
+            body { background: white !important; }
+            header, .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-function doGet(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var rows = sheet.getDataRange().getValues();
-  var headers = rows[0];
-  var result = [];
-  
-  for (var i = 1; i < rows.length; i++) {
-    var obj = {};
-    for (var j = 0; j < headers.length; j++) {
-      obj[headers[j]] = rows[i][j];
-    }
-    result.push(obj);
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify(result))
-         .setMimeType(ContentService.MimeType.JSON);
-}
+    <!-- Configuration Banner / API URL Input -->
+    <div class="bg-slate-900 text-white text-xs py-2 px-4 no-print flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-cloud text-indigo-400"></i>
+            <span>雲端同步狀態：</span>
+            <span id="sync-status-text" class="text-amber-400 font-medium">尚未設定 Google 網址</span>
+        </div>
+        <button onclick="toggleConfig()" class="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-[11px] transition">
+            <i class="fa-solid fa-gear mr-1"></i>設定雲端 API 網址
+        </button>
+    </div>
+
+    <!-- Config Modal Box -->
+    <div id="config-panel" class="hidden bg-slate-800 text-white p-4 border-b border-slate-700 no-print">
+        <div class="max-w-4xl mx-auto space-y-2">
+            <label class="block text-xs font-medium text-slate-300">請貼上您的 Google Apps Script 網頁應用程式網址 (URL)：</label>
+            <div class="flex space-x-2">
+                <input type="text" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <button onclick="saveApiUrl()" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded text-xs font-semibold whitespace-nowrap">儲存並同步</button>
+            </div>
+            <p class="text-[11px] text-slate-400">設定後，打卡與備註資料將自動寫入您的 Google 試算表。</p>
+        </div>
+    </div>
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm no-print">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md">
+                    <i class="fa-solid fa-business-time text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
+                    <p class="text-xs text-slate-500">通知時間紀錄 ➔ 實際抵達打卡 (支援名字、人數與備註) ➔ 雲端統整</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div id="live-clock" class="text-lg font-bold text-indigo-600 font-mono">00:00:00</div>
+                <div id="live-date" class="text-xs text-slate-400">YYYY-MM-DD</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Panel: Action & Active Pending List -->
+        <div class="lg:col-span-1 space-y-6 no-print">
+            
+            <!-- Step 1: Record Notification Time -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-4 flex items-center">
+                    <span class="bg-indigo-100 text-indigo-600 w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 font-bold">1</span> 
+                    步驟一：發送/記錄通知時間
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="person-name" class="block text-xs font-medium text-slate-500 mb-1">人員 / 訪客名稱</label>
+                        <input type="text" id="person-name" placeholder="例如：張先生 / 外送員A" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                    </div>
+                    <div>
+                        <label for="note-text" class="block text-xs font-medium text-slate-500 mb-1">備註說明 (選填)</label>
+                        <input type="text" id="note-text" placeholder="例如：會議室A / 文件簽收" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                    </div>
+                    <button id="notify-btn" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition transform active:scale-95 flex items-center justify-center space-x-2 text-sm">
+                        <i class="fa-solid fa-bell"></i>
+                        <span>記錄通知時間 (開始計時)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pending Arrivals Box -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span class="flex items-center">
+                        <i class="fa-solid fa-hourglass-half text-amber-500 mr-2"></i> 待抵達清單 (步驟二)
+                    </span>
+                    <span id="pending-count-badge" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                </h2>
+                <p class="text-xs text-slate-400 mb-4">點擊清單中的「人員已抵達」以確認名字、人數與備註並完成打卡。</p>
+                
+                <div id="pending-container" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    <div id="pending-empty" class="text-center py-8 text-slate-400 text-xs">
+                        目前沒有等待抵達的人員
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Panel: Statistics Dashboard & Complete History -->
+        <div class="lg:col-span-2 space-y-6 w-full">
+            
+            <!-- Statistics Dashboard Cards -->
+            <div class="grid grid-cols-3 gap-4 no-print">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">完成打卡總數</span>
+                    <span id="stat-total" class="text-2xl font-bold text-slate-800">0</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">平均等候時間</span>
+                    <span id="stat-avg-time" class="text-2xl font-bold text-indigo-600">0 分鐘</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">最長等候時間</span>
+                    <span id="stat-max-time" class="text-2xl font-bold text-amber-600">0 分鐘</span>
+                </div>
+            </div>
+
+            <!-- History Records Section -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-[520px]">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-3">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-chart-line text-indigo-500 mr-2"></i> 後台統計與已完成紀錄
+                    </h2>
+                    <div class="flex items-center space-x-2 no-print flex-wrap gap-y-2">
+                        <button onclick="fetchCloudData()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-2 rounded-xl transition flex items-center shadow-sm">
+                            <i class="fa-solid fa-rotate mr-1.5 text-sm"></i> 同步雲端資料
+                        </button>
+                        <button id="export-csv-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-2 rounded-xl transition flex items-center shadow-sm">
+                            <i class="fa-solid fa-file-csv mr-1.5 text-sm"></i> 匯出 CSV
+                        </button>
+                        <button id="print-pdf-btn" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-2 rounded-xl transition flex items-center shadow-sm">
+                            <i class="fa-solid fa-print mr-1.5 text-sm"></i> 列印 / PDF
+                        </button>
+                    </div>
+                </div>
+
+                <div class="print-only mb-4">
+                    <h2 class="text-xl font-bold">人員抵達與等候時間打卡統計報表</h2>
+                    <p class="text-xs text-slate-500" id="print-date-label">列印日期：2026-00-00</p>
+                </div>
+
+                <div id="records-container" class="overflow-y-auto flex-grow space-y-3 pr-1">
+                    <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-400 py-12">
+                        <i class="fa-solid fa-clipboard-list text-4xl mb-3 text-slate-300"></i>
+                        <p class="text-sm">尚無完成抵達的打卡紀錄</p>
+                        <p class="text-xs text-slate-400 mt-1">請點擊同步雲端資料或進行打卡</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal for Arrival & Name/Count/Note Input -->
+    <div id="arrival-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="arrival-modal-content">
+            <h3 class="font-bold text-slate-900 text-base mb-2 flex items-center">
+                <i class="fa-solid fa-circle-check text-emerald-600 mr-2"></i> 確認人員抵達資訊
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">請確認姓名、人數並填寫/修改備註：</p>
+            
+            <div class="space-y-3 mb-6">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">實際抵達姓名</label>
+                    <input type="text" id="modal-arrival-name" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">登記到達人數</label>
+                    <input type="number" id="modal-arrival-count" value="1" min="1" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">備註說明</label>
+                    <input type="text" id="modal-arrival-note" placeholder="例如：會議室A / 補件" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="flex space-x-2 justify-end">
+                <button onclick="closeArrivalModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-medium transition">取消</button>
+                <button id="modal-confirm-arrival-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-medium transition">確認打卡送出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- General Message Modal -->
+    <div id="custom-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
+            <div class="flex items-center space-x-3 mb-4">
+                <div id="modal-icon-container" class="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600">
+                    <i id="modal-icon" class="fa-solid fa-info"></i>
+                </div>
+                <div>
+                    <h3 id="modal-title" class="font-bold text-slate-900">提示訊息</h3>
+                    <p id="modal-subtitle" class="text-xs text-slate-400">系統狀態通知</p>
+                </div>
+            </div>
+            <p id="modal-message" class="text-sm text-slate-600 mb-6 leading-relaxed"></p>
+            <div class="flex justify-end">
+                <button id="modal-close-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let WEB_APP_URL = localStorage.getItem('cloud_api_url') || "";
+        let pendingList = JSON.parse(localStorage.getItem('two_step_pending') || '[]');
+        let completedRecords = JSON.parse(localStorage.getItem('two_step_completed') || '[]');
+        let currentActiveId = null;
+
+        const liveClockEl = document.getElementById('live-clock');
+        const liveDateEl = document.getElementById('live-date');
+        const personNameInput = document.getElementById('person-name');
+        const noteTextInput = document.getElementById('note-text');
+        const notifyBtn = document.getElementById('notify-btn');
+        const pendingContainer = document.getElementById('pending-container');
+        const pendingCountBadge = document.getElementById('pending-count-badge');
+        const recordsContainer = document.getElementById('records-container');
+        const emptyState = document.getElementById('empty-state');
+        const statTotal = document.getElementById('stat-total');
+        const statAvgTime = document.getElementById('stat-avg-time');
+        const statMaxTime = document.getElementById('stat-max-time');
+        const syncStatusText = document.getElementById('sync-status-text');
+        const apiUrlInput = document.getElementById('api-url-input');
+
+        const arrivalModal = document.getElementById('arrival-modal');
+        const arrivalModalContent = document.getElementById('arrival-modal-content');
+        const modalArrivalName = document.getElementById('modal-arrival-name');
+        const modalArrivalCount = document.getElementById('modal-arrival-count');
+        const modalArrivalNote = document.getElementById('modal-arrival-note');
+        const modalConfirmArrivalBtn = document.getElementById('modal-confirm-arrival-btn');
+
+        const customModal = document.getElementById('custom-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalTitle = document.getElementById('modal-title');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const modalContent = document.getElementById('modal-content');
+        const modalIconContainer = document.getElementById('modal-icon-container');
+        const modalIcon = document.getElementById('modal-icon');
+
+        function initApp() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            if (WEB_APP_URL) {
+                apiUrlInput.value = WEB_APP_URL;
+                syncStatusText.textContent = "已連線雲端";
+                syncStatusText.className = "text-emerald-400 font-medium";
+                fetchCloudData();
+            } else {
+                renderPendingList();
+                renderCompletedRecords();
+            }
+
+            const now = new Date();
+            document.getElementById('print-date-label').textContent = `列印日期：${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            liveClockEl.textContent = `${h}:${m}:${s}`;
+            liveDateEl.textContent = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        }
+
+        function toggleConfig() {
+            document.getElementById('config-panel').classList.toggle('hidden');
+        }
+
+        function saveApiUrl() {
+            const url = apiUrlInput.value.trim();
+            if (!url) {
+                alert('請輸入有效的網址');
+                return;
+            }
+            WEB_APP_URL = url;
+            localStorage.setItem('cloud_api_url', url);
+            syncStatusText.textContent = "已連線雲端";
+            syncStatusText.className = "text-emerald-400 font-medium";
+            toggleConfig();
+            showModal('設定成功', 'Google API 網址已儲存，正在嘗試同步...', 'success');
+            fetchCloudData();
+        }
+
+        function showModal(title, message, type = 'info') {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalIconContainer.className = "w-10 h-10 rounded-full flex items-center justify-center ";
+            if (type === 'success') {
+                modalIconContainer.classList.add('bg-emerald-100', 'text-emerald-600');
+                modalIcon.className = "fa-solid fa-check";
+            } else if (type === 'warning') {
+                modalIconContainer.classList.add('bg-amber-100', 'text-amber-600');
+                modalIcon.className = "fa-solid fa-triangle-exclamation";
+            } else {
+                modalIconContainer.classList.add('bg-indigo-100', 'text-indigo-600');
+                modalIcon.className = "fa-solid fa-info";
+            }
+            customModal.classList.remove('hidden');
+            setTimeout(() => {
+                customModal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function hideModal() {
+            customModal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => { customModal.classList.add('hidden'); }, 300);
+        }
+
+        modalCloseBtn.addEventListener('click', hideModal);
+
+        notifyBtn.addEventListener('click', () => {
+            const personName = personNameInput.value.trim();
+            if (!personName) {
+                showModal('欄位未填寫', '請先輸入人員或訪客名稱！', 'warning');
+                return;
+            }
+
+            const now = new Date();
+            const newItem = {
+                id: Date.now(),
+                name: personName,
+                notifyTime: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`,
+                notifyTimestamp: now.getTime(),
+                note: noteTextInput.value.trim() || '無備註'
+            };
+
+            pendingList.push(newItem);
+            localStorage.setItem('two_step_pending', JSON.stringify(pendingList));
+            renderPendingList();
+
+            personNameInput.value = '';
+            noteTextInput.value = '';
+            showModal('通知時間已記錄', `已建立 ${personName} 的通知紀錄，等待人員抵達。`, 'success');
+        });
+
+        window.openArrivalModal = function(id) {
+            currentActiveId = id;
+            const item = pendingList.find(i => i.id === id);
+            if (!item) return;
+
+            modalArrivalName.value = item.name;
+            modalArrivalCount.value = 1;
+            modalArrivalNote.value = item.note !== '無備註' ? item.note : '';
+
+            arrivalModal.classList.remove('hidden');
+            setTimeout(() => {
+                arrivalModal.classList.remove('opacity-0');
+                arrivalModalContent.classList.remove('scale-95');
+                arrivalModalContent.classList.add('scale-100');
+            }, 10);
+        };
+
+        function closeArrivalModal() {
+            arrivalModal.classList.add('opacity-0');
+            arrivalModalContent.classList.remove('scale-100');
+            arrivalModalContent.classList.add('scale-95');
+            setTimeout(() => { arrivalModal.classList.add('hidden'); }, 300);
+        }
+
+        modalConfirmArrivalBtn.addEventListener('click', () => {
+            const index = pendingList.findIndex(item => item.id === currentActiveId);
+            if (index === -1) return;
+
+            const item = pendingList[index];
+            const arriveName = modalArrivalName.value.trim() || item.name;
+            const count = parseInt(modalArrivalCount.value) || 1;
+            const note = modalArrivalNote.value.trim() || item.note;
+            const now = new Date();
+            const arrivalTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            
+            const diffMs = now.getTime() - item.notifyTimestamp;
+            const diffMinutes = Math.round((diffMs / 1000 / 60) * 10) / 10;
+
+            const completedItem = {
+                id: item.id,
+                name: item.name,
+                arriveName: arriveName,
+                role: note,
+                notifyTime: item.notifyTime,
+                arrivalTime: arrivalTimeStr,
+                waitMinutes: diffMinutes,
+                status: '已完成',
+                count: count,
+                completedAt: now.toLocaleString()
+            };
+
+            pendingList.splice(index, 1);
+            completedRecords.unshift(completedItem);
+            localStorage.setItem('two_step_pending', JSON.stringify(pendingList));
+            localStorage.setItem('two_step_completed', JSON.stringify(completedRecords));
+
+            renderPendingList();
+            renderCompletedRecords();
+            closeArrivalModal();
+
+            if (WEB_APP_URL) {
+                sendToCloud(completedItem);
+            }
+
+            showModal('打卡完成', `${arriveName} (人數: ${count}) 已抵達！等候時間約 ${diffMinutes} 分鐘。`, 'success');
+        });
+
+        function sendToCloud(data) {
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).catch(err => console.error('Cloud sync error:', err));
+        }
+
+        function fetchCloudData() {
+            if (!WEB_APP_URL) return;
+            fetch(WEB_APP_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        completedRecords = data.map((row, idx) => ({
+                            id: row.ID || idx,
+                            name: row.Name || '未知',
+                            arriveName: row.ArriveName || row.Name || '未知',
+                            role: row.Role || '無備註',
+                            notifyTime: row.NotifyTime || '',
+                            arrivalTime: row.ArriveTime || '',
+                            waitMinutes: parseFloat(row.WaitMinutes) || 0,
+                            count: parseInt(row.Count) || 1,
+                            completedAt: row.Status || new Date().toLocaleString()
+                        })).reverse();
+                        renderCompletedRecords();
+                    }
+                })
+                .catch(err => console.error('Fetch cloud data error:', err));
+        }
+
+        window.removePending = function(id) {
+            pendingList = pendingList.filter(item => item.id !== id);
+            localStorage.setItem('two_step_pending', JSON.stringify(pendingList));
+            renderPendingList();
+        };
+
+        function renderPendingList() {
+            pendingContainer.innerHTML = '';
+            pendingCountBadge.textContent = pendingList.length;
+
+            if (pendingList.length === 0) {
+                pendingContainer.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">目前沒有等待抵達的人員</div>`;
+                return;
+            }
+
+            pendingList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-amber-50/60 border border-amber-200/80 rounded-xl p-3.5 flex flex-col space-y-2";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-800 text-sm">${item.name}</span>
+                        <span class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-mono"><i class="fa-solid fa-bell mr-1"></i>${item.notifyTime}</span>
+                    </div>
+                    ${item.note && item.note !== '無備註' ? `<div class="text-xs text-slate-500 italic"><i class="fa-solid fa-note-sticky mr-1"></i>${item.note}</div>` : ''}
+                    <div class="flex items-center space-x-2 pt-1">
+                        <button onclick="openArrivalModal(${item.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow transition flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-check-circle"></i><span>人員已抵達 (打卡)</span>
+                        </button>
+                        <button onclick="removePending(${item.id})" class="text-slate-400 hover:text-rose-600 p-2 text-xs transition" title="取消"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                `;
+                pendingContainer.appendChild(card);
+            });
+        }
+
+        function renderCompletedRecords() {
+            recordsContainer.innerHTML = '';
+            if (completedRecords.length === 0) {
+                emptyState.classList.remove('hidden');
+                statTotal.textContent = '0';
+                statAvgTime.textContent = '0 分鐘';
+                statMaxTime.textContent = '0 分鐘';
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            let totalMinutes = 0, maxMinutes = 0;
+
+            completedRecords.forEach(rec => {
+                totalMinutes += rec.waitMinutes;
+                if (rec.waitMinutes > maxMinutes) maxMinutes = rec.waitMinutes;
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                            <span class="font-bold text-slate-800 text-sm">${rec.arriveName || rec.name}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full border font-semibold bg-indigo-50 text-indigo-700 border-indigo-200">等候: ${rec.waitMinutes} 分鐘</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full border font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">人數: ${rec.count || 1} 人</span>
+                        </div>
+                        <div class="text-xs text-slate-500 flex items-center space-x-3 flex-wrap">
+                            <span><i class="fa-solid fa-bell mr-1 text-slate-400"></i>通知: ${rec.notifyTime}</span>
+                            <span><i class="fa-solid fa-person-walking-arrow-right mr-1 text-slate-400"></i>抵達: ${rec.arrivalTime}</span>
+                            ${rec.role && rec.role !== '無備註' ? `<span><i class="fa-solid fa-note-sticky mr-1 text-slate-400"></i>備註: ${rec.role}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 font-mono">${rec.completedAt}</div>
+                `;
+                recordsContainer.appendChild(card);
+            });
+
+            statTotal.textContent = completedRecords.length;
+            statAvgTime.textContent = `${Math.round((totalMinutes / completedRecords.length) * 10) / 10} 分鐘`;
+            statMaxTime.textContent = `${maxMinutes} 分鐘`;
+        }
+
+        document.getElementById('export-csv-btn').addEventListener('click', () => {
+            if (completedRecords.length === 0) {
+                showModal('無法匯出', '目前沒有資料可供匯出。', 'warning');
+                return;
+            }
+            let csv = '\uFEFF項次,原始名稱,抵達名稱,通知時間,抵達時間,等候時間(分鐘),登記人數,備註說明,完成時間\n';
+            completedRecords.forEach((r, i) => {
+                csv += `${i + 1},"${r.name}","${r.arriveName || r.name}",${r.notifyTime},${r.arrivalTime},${r.waitMinutes},${r.count || 1},"${r.role}","${r.completedAt}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `打卡統計報表_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('print-pdf-btn').addEventListener('click', () => {
+            if (completedRecords.length === 0) {
+                showModal('無法列印', '目前沒有紀錄可供列印。', 'warning');
+                return;
+            }
+            window.print();
+        });
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
+
+
