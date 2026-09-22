@@ -24,17 +24,6 @@
     <!-- 主操作區 -->
     <main class="max-w-xl w-full flex flex-col gap-6">
 
-        <!-- 雲端 API 網址設定區 (可選) -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 text-sm">
-            <details>
-                <summary class="font-semibold text-indigo-600 cursor-pointer select-none">⚙️ 點此設定 Google 試算表雲端同步網址 (選填)</summary>
-                <div class="mt-3 flex gap-2">
-                    <input type="text" id="web-app-url" placeholder="請貼上您的 Google Apps Script 網址..." class="flex-grow border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
-                    <button onclick="saveApiUrl()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs hover:bg-slate-700 transition">儲存</button>
-                </div>
-            </details>
-        </div>
-
         <!-- 步驟一：發送/記錄通知時間 -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex items-center gap-2 mb-4">
@@ -75,9 +64,24 @@
             </div>
         </div>
 
+        <!-- 已完成清單區塊 -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-emerald-100 text-emerald-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✓</span>
+                    <h2 class="font-bold text-lg text-slate-700">已完成打卡紀錄</h2>
+                </div>
+                <button onclick="clearHistory()" class="text-xs text-slate-400 hover:text-red-500 transition">清除紀錄</button>
+            </div>
+
+            <div id="history-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <div class="text-center text-slate-400 py-6 text-sm">尚無打卡完成紀錄</div>
+            </div>
+        </div>
+
     </main>
 
-    <!-- 第二階段抵達打卡彈窗 (可修改名字與空白備註欄位) -->
+    <!-- 第二階段抵達打卡彈窗 (修改名字與空白備註) -->
     <div id="arrive-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <h3 class="font-bold text-lg text-slate-800 mb-4">✨ 確認人員抵達資訊</h3>
@@ -87,7 +91,7 @@
                     <input type="text" id="modal-arrive-name" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">備註 / 補充說明 (空白格)</label>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">備註欄 (空白格可填寫)</label>
                     <input type="text" id="modal-arrive-note" placeholder="請在此輸入備註文字..." class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
             </div>
@@ -101,23 +105,16 @@
     <!-- JavaScript 邏輯 -->
     <script>
         let pendingList = JSON.parse(localStorage.getItem('pending_list')) || [];
+        let historyList = JSON.parse(localStorage.getItem('history_list')) || [];
         let currentTargetId = null;
-        let WEB_APP_URL = localStorage.getItem('web_app_url') || "";
 
-        document.getElementById('web-app-url').value = WEB_APP_URL;
         updateClock();
         setInterval(updateClock, 1000);
-        renderPendingList();
+        renderAll();
 
         function updateClock() {
             const now = new Date();
             document.getElementById('live-clock').innerText = now.toLocaleTimeString('zh-TW');
-        }
-
-        function saveApiUrl() {
-            WEB_APP_URL = document.getElementById('web-app-url').value.trim();
-            localStorage.setItem('web_app_url', WEB_APP_URL);
-            alert("雲端 API 網址已儲存！");
         }
 
         function recordNotification() {
@@ -173,7 +170,6 @@
 
                 const completedItem = {
                     id: item.id,
-                    name: item.name,
                     arriveName: arriveName || item.name,
                     notifyTime: item.notifyTime,
                     arriveTime: arriveTimeString,
@@ -181,59 +177,61 @@
                     note: arriveNote
                 };
 
+                historyList.unshift(completedItem);
                 saveAndRender();
-                syncToCloud(completedItem);
-                alert(`打卡完成！\n人員：${completedItem.arriveName}\n等候時間：${waitMinutes} 分鐘${arriveNote ? '\n備註：' + arriveNote : ''}`);
             }
 
             closeArriveModal();
         }
 
-        function saveAndRender() {
-            localStorage.setItem('pending_list', JSON.stringify(pendingList));
-            renderPendingList();
+        function clearHistory() {
+            if (confirm('確定要清除所有已完成的打卡紀錄嗎？')) {
+                historyList = [];
+                saveAndRender();
+            }
         }
 
-        function renderPendingList() {
-            const container = document.getElementById('pending-list');
+        function saveAndRender() {
+            localStorage.setItem('pending_list', JSON.stringify(pendingList));
+            localStorage.setItem('history_list', JSON.stringify(historyList));
+            renderAll();
+        }
+
+        function renderAll() {
+            // 渲染待抵達清單
+            const pendingContainer = document.getElementById('pending-list');
             document.getElementById('pending-count-badge').innerText = pendingList.length;
 
             if (pendingList.length === 0) {
-                container.innerHTML = `<div class="text-center text-slate-400 py-10 text-sm">目前沒有等待抵達的人員</div>`;
-                return;
+                pendingContainer.innerHTML = `<div class="text-center text-slate-400 py-10 text-sm">目前沒有等待抵達的人員</div>`;
+            } else {
+                pendingContainer.innerHTML = pendingList.map(item => `
+                    <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl flex items-center justify-between gap-3">
+                        <div>
+                            <div class="font-bold text-sm text-slate-700">${item.name}</div>
+                            <div class="text-xs text-slate-400 mt-0.5">通知時間：${item.notifyTime} ${item.note ? ' | 備註：' + item.note : ''}</div>
+                        </div>
+                        <button onclick="openArriveModal('${item.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition shrink-0">
+                            人員已抵達
+                        </button>
+                    </div>
+                `).join('');
             }
 
-            container.innerHTML = pendingList.map(item => `
-                <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl flex items-center justify-between gap-3">
-                    <div>
-                        <div class="font-bold text-sm text-slate-700">${item.name}</div>
-                        <div class="text-xs text-slate-400 mt-0.5">通知時間：${item.notifyTime} ${item.note ? ' | 備註：' + item.note : ''}</div>
+            // 渲染已完成紀錄
+            const historyContainer = document.getElementById('history-list');
+            if (historyList.length === 0) {
+                historyContainer.innerHTML = `<div class="text-center text-slate-400 py-6 text-sm">尚無打卡完成紀錄</div>`;
+            } else {
+                historyContainer.innerHTML = historyList.map(item => `
+                    <div class="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                            <div class="font-bold text-sm text-slate-700">${item.arriveName} <span class="text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full ml-1">等候 ${item.waitMinutes} 分鐘</span></div>
+                            <div class="text-xs text-slate-400 mt-0.5">通知：${item.notifyTime} ➜ 抵達：${item.arriveTime} ${item.note ? ' | 備註：' + item.note : ''}</div>
+                        </div>
                     </div>
-                    <button onclick="openArriveModal('${item.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition shrink-0">
-                        人員已抵達
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function syncToCloud(item) {
-            if (!WEB_APP_URL) return;
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: item.id,
-                    name: item.name,
-                    arriveName: item.arriveName,
-                    role: 'Visitor/Staff',
-                    notifyTime: item.notifyTime,
-                    arriveTime: item.arriveTime,
-                    waitMinutes: item.waitMinutes,
-                    note: item.note,
-                    status: 'Completed'
-                })
-            }).catch(err => console.error("Cloud sync error:", err));
+                `).join('');
+            }
         }
     </script>
 </body>
