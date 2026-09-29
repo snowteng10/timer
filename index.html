@@ -403,7 +403,6 @@
             noteTextInput.value = '';
         });
 
-        // 點擊「人員已抵達 (打卡)」：立即以此時間計算等候時間，並移入已完成清單（卡號可留空或事後補填）
         window.confirmArrival = function(id) {
             const index = pendingList.findIndex(item => item.id === id);
             if (index === -1) return;
@@ -413,7 +412,6 @@
             const arrivalTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
             const arrivalTimestamp = now.getTime();
 
-            // 以按下打卡當下計算等候時間
             const diffMs = arrivalTimestamp - item.notifyTimestamp;
             const diffMinutesExact = diffMs / 1000 / 60;
             const diffMinutesRounded = Math.round(diffMinutesExact * 10) / 10;
@@ -421,7 +419,7 @@
             const completedItem = {
                 id: item.id,
                 name: item.name,
-                cardNumber: '', // 初始卡號為空，可於右側補填
+                cardNumber: '', 
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
@@ -438,7 +436,6 @@
             syncToCloud();
         };
 
-        // 已完成清單中：即時更新卡號（不重新計算時間）
         window.updateCardNumber = function(id, newCardVal) {
             const rec = completedRecords.find(r => r.id === id);
             if (rec) {
@@ -473,26 +470,34 @@
             }
         });
 
-        // Cloud Synchronization Functions
+        // 雲端同步函式 (針對手機 APP / WebView 進行 text/plain 與 redirect優化)
         async function syncToCloud() {
             if (!scriptUrl) return;
             syncStatus.textContent = '同步中...';
+            
             try {
                 const payload = {
                     action: 'saveData',
                     pending: pendingList,
                     completed: completedRecords
                 };
-                await fetch(scriptUrl, {
+
+                const response = await fetch(scriptUrl, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'text/plain;charset=utf-8' 
+                    },
                     body: JSON.stringify(payload)
                 });
-                syncStatus.textContent = '已同步雲端';
-                syncStatus.className = 'text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium';
+
+                if (response.ok) {
+                    syncStatus.textContent = '已同步雲端';
+                    syncStatus.className = 'text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium';
+                } else {
+                    throw new Error('伺服器回應異常');
+                }
             } catch (err) {
-                console.error(err);
+                console.error('同步失敗:', err);
                 syncStatus.textContent = '同步失敗';
                 syncStatus.className = 'text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-medium';
             }
@@ -501,18 +506,24 @@
         async function fetchFromCloud() {
             if (!scriptUrl) return;
             try {
-                const response = await fetch(scriptUrl);
+                const response = await fetch(scriptUrl, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
                 const data = await response.json();
-                if (data && data.pending && data.completed) {
-                    pendingList = data.pending;
-                    completedRecords = data.completed;
+                if (data && (data.pending || data.completed)) {
+                    pendingList = data.pending || [];
+                    completedRecords = data.completed || [];
                     saveData();
                     renderPendingList();
                     renderCompletedRecords();
                     syncStatus.textContent = '已從雲端載入';
+                    syncStatus.className = 'text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium';
                 }
             } catch (err) {
                 console.error('無法從雲端讀取資料:', err);
+                syncStatus.textContent = '載入失敗';
+                syncStatus.className = 'text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium';
             }
         }
 
