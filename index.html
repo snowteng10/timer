@@ -40,7 +40,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統 (雲端同步版)</h1>
-                    <p class="text-xs text-slate-500">通知時間紀錄 ➔ 實際抵達打卡 ➔ 雲端硬碟同步</p>
+                    <p class="text-xs text-slate-500">通知時間紀錄 ➔ 實際抵達打卡 ➔ 支援事後補登</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -82,6 +82,19 @@
                 </div>
             </div>
 
+            <!-- Manual Retroactive Entry Box -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3 flex items-center">
+                    <span class="bg-emerald-100 text-emerald-600 w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 font-bold">+</span> 
+                    事後補打卡 / 補登資料
+                </h2>
+                <p class="text-xs text-slate-400 mb-3">若已直接完成或需補登歷史紀錄，可直接在此輸入。</p>
+                <button id="open-retro-modal-btn" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center space-x-2 text-xs">
+                    <i class="fa-solid fa-pen-to-square text-emerald-600"></i>
+                    <span>開啟事後補登表單</span>
+                </button>
+            </div>
+
             <!-- Pending Arrivals Box (Waiting for Step 2) -->
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                 <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3 flex items-center justify-between">
@@ -92,8 +105,8 @@
                 </h2>
                 <p class="text-xs text-slate-400 mb-4">點擊清單中的「人員已抵達」以填寫卡號並完成打卡。</p>
                 
-                <div id="pending-container" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                    <div id="pending-empty" class="text-center py-8 text-slate-400 text-xs">
+                <div id="pending-container" class="space-y-3 max-h-[240px] overflow-y-auto pr-1">
+                    <div id="pending-empty" class="text-center py-6 text-slate-400 text-xs">
                         目前沒有等待抵達的人員
                     </div>
                 </div>
@@ -157,7 +170,7 @@
                     <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-400 py-12">
                         <i class="fa-solid fa-clipboard-list text-4xl mb-3 text-slate-300"></i>
                         <p class="text-sm">尚無完成抵達的打卡紀錄</p>
-                        <p class="text-xs text-slate-400 mt-1">請先進行「步驟一」記錄通知，再點擊抵達打卡</p>
+                        <p class="text-xs text-slate-400 mt-1">請先進行「步驟一」記錄通知，再點擊抵達打卡或直接補登</p>
                     </div>
                 </div>
             </div>
@@ -185,7 +198,7 @@
                 </div>
                 <div class="bg-indigo-50 rounded-xl p-3 text-xs text-indigo-700 space-y-1">
                     <p class="font-bold"><i class="fa-solid fa-circle-info mr-1"></i> 如何串接？</p>
-                    <p>1. 建立 Google 試算表並外掛 Apps Script 接收 POST/GET 請求。</p>
+                    <p>1. 建立 Google 試算表並外掛 Apps Script 接收請求。</p>
                     <p>2. 部署為網頁應用程式 (Web App)，存取權限設為「所有人」。</p>
                     <p>3. 將產生的網址貼於上方即可雙向同步與備份。</p>
                 </div>
@@ -227,6 +240,50 @@
                 </button>
                 <button id="modal-confirm-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition">
                     確認打卡
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Retroactive (Manual Entry) Modal -->
+    <div id="retro-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="retro-modal-content">
+            <h3 class="font-bold text-lg text-slate-900 mb-1 flex items-center">
+                <i class="fa-solid fa-pen-to-square text-emerald-600 mr-2"></i> 事後補登打卡紀錄
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">手動輸入各項資訊直接新增一筆已完成紀錄</p>
+            
+            <div class="space-y-3 mb-5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">人員 / 訪客名稱</label>
+                    <input type="text" id="retro-name" placeholder="例如：mer-66" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">接藥人卡號</label>
+                    <input type="text" id="retro-card" placeholder="例如：2066" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">通知時間 (HH:MM:SS)</label>
+                        <input type="text" id="retro-notify-time" placeholder="21:48:33" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">抵達時間 (HH:MM:SS)</label>
+                        <input type="text" id="retro-arrive-time" placeholder="21:53:28" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">備註說明 (選填)</label>
+                    <input type="text" id="retro-note" placeholder="例如：3103" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="flex space-x-2">
+                <button id="retro-cancel-btn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-medium transition">
+                    取消
+                </button>
+                <button id="retro-confirm-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-medium transition">
+                    確認新增補登
                 </button>
             </div>
         </div>
@@ -296,13 +353,25 @@
         const modalIconContainer = document.getElementById('modal-icon-container');
         const modalIcon = document.getElementById('modal-icon');
 
-        // Arrive Modal Elements
+        // Arrival Modal Elements
         const arriveModal = document.getElementById('arrive-modal');
         const arriveModalContent = document.getElementById('arrive-modal-content');
         const modalArriveName = document.getElementById('modal-arrive-name');
         const modalArriveCard = document.getElementById('modal-arrive-card');
         const modalCancelBtn = document.getElementById('modal-cancel-btn');
         const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+
+        // Retroactive Modal Elements
+        const openRetroModalBtn = document.getElementById('open-retro-modal-btn');
+        const retroModal = document.getElementById('retro-modal');
+        const retroModalContent = document.getElementById('retro-modal-content');
+        const retroName = document.getElementById('retro-name');
+        const retroCard = document.getElementById('retro-card');
+        const retroNotifyTime = document.getElementById('retro-notify-time');
+        const retroArriveTime = document.getElementById('retro-arrive-time');
+        const retroNote = document.getElementById('retro-note');
+        const retroCancelBtn = document.getElementById('retro-cancel-btn');
+        const retroConfirmBtn = document.getElementById('retro-confirm-btn');
 
         // State variables
         let pendingList = []; 
@@ -411,6 +480,86 @@
                 syncStatus.textContent = '未同步雲端';
                 syncStatus.className = 'text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full';
             }
+        });
+
+        // Retroactive Modal Controls
+        openRetroModalBtn.addEventListener('click', () => {
+            retroName.value = '';
+            retroCard.value = '';
+            const now = new Date();
+            const curTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            retroNotifyTime.value = curTimeStr;
+            retroArriveTime.value = curTimeStr;
+            retroNote.value = '';
+
+            retroModal.classList.remove('hidden');
+            setTimeout(() => {
+                retroModal.classList.remove('opacity-0');
+                retroModalContent.classList.remove('scale-95');
+                retroModalContent.classList.add('scale-100');
+            }, 10);
+        });
+
+        function closeRetroModal() {
+            retroModal.classList.add('opacity-0');
+            retroModalContent.classList.remove('scale-100');
+            retroModalContent.classList.add('scale-95');
+            setTimeout(() => {
+                retroModal.classList.add('hidden');
+            }, 300);
+        }
+
+        retroCancelBtn.addEventListener('click', closeRetroModal);
+        retroModal.addEventListener('click', (e) => {
+            if (e.target === retroModal) closeRetroModal();
+        });
+
+        retroConfirmBtn.addEventListener('click', () => {
+            const name = retroName.value.trim();
+            const notifyT = retroNotifyTime.value.trim();
+            const arriveT = retroArriveTime.value.trim();
+
+            if (!name || !notifyT || !arriveT) {
+                showModal('欄位未填寫', '請填寫人員名稱、通知時間與抵達時間！', 'warning');
+                return;
+            }
+
+            // Calculate waiting minutes from HH:MM:SS
+            const parseTimeToSeconds = (tStr) => {
+                const parts = tStr.split(':');
+                if (parts.length < 2) return 0;
+                const h = parseInt(parts[0]) || 0;
+                const m = parseInt(parts[1]) || 0;
+                const s = parseInt(parts[2]) || 0;
+                return h * 3600 + m * 60 + s;
+            };
+
+            const notifySec = parseTimeToSeconds(notifyT);
+            const arriveSec = parseTimeToSeconds(arriveT);
+            let diffSec = arriveSec - notifySec;
+            if (diffSec < 0) diffSec += 86400; // Across midnight handling
+
+            const diffMinutes = Math.round((diffSec / 60) * 10) / 10;
+            const now = new Date();
+
+            const completedItem = {
+                id: Date.now(),
+                name: name,
+                cardNumber: retroCard.value.trim(),
+                notifyTime: notifyT,
+                arrivalTime: arriveT,
+                waitingMinutes: diffMinutes,
+                note: retroNote.value.trim(),
+                completedAt: `${now.toLocaleDateString()} ${arriveT}`
+            };
+
+            completedRecords.unshift(completedItem);
+            saveData();
+            renderCompletedRecords();
+            closeRetroModal();
+            syncToCloud();
+
+            showModal('補登成功', `已成功補登 ${name} 的打卡紀錄 (等候 ${diffMinutes} 分鐘)。`, 'success');
         });
 
         notifyBtn.addEventListener('click', () => {
@@ -661,7 +810,7 @@
 
             if (pendingList.length === 0) {
                 pendingContainer.innerHTML = `
-                    <div class="text-center py-8 text-slate-400 text-xs">
+                    <div class="text-center py-6 text-slate-400 text-xs">
                         目前沒有等待抵達的人員
                     </div>
                 `;
