@@ -39,8 +39,8 @@
                     <i class="fa-solid fa-business-time text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統 (同畫面填卡號版)</h1>
-                    <p class="text-xs text-slate-500">通知時間紀錄 ➔ 點擊打卡 ➔ 同畫面輸入卡號完成</p>
+                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統 (即時算時版)</h1>
+                    <p class="text-xs text-slate-500">點擊打卡當下即算時間，卡號僅作事後補充</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -82,7 +82,7 @@
                 </div>
             </div>
 
-            <!-- Pending Arrivals Box (Waiting for Step 2) -->
+            <!-- Pending Arrivals Box -->
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                 <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3 flex items-center justify-between">
                     <span class="flex items-center">
@@ -90,7 +90,7 @@
                     </span>
                     <span id="pending-count-badge" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                 </h2>
-                <p class="text-xs text-slate-400 mb-4">點擊「人員已抵達」即可在同畫面輸入卡號並完成打卡。</p>
+                <p class="text-xs text-slate-400 mb-4">點擊「人員已抵達」即刻鎖定抵達時間並移至右側。</p>
                 
                 <div id="pending-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                     <div id="pending-empty" class="text-center py-6 text-slate-400 text-xs">
@@ -157,7 +157,7 @@
                     <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-400 py-12">
                         <i class="fa-solid fa-clipboard-list text-4xl mb-3 text-slate-300"></i>
                         <p class="text-sm">尚無完成抵達的打卡紀錄</p>
-                        <p class="text-xs text-slate-400 mt-1">請先進行「步驟一」記錄通知，再於左側清單點擊打卡並輸入卡號</p>
+                        <p class="text-xs text-slate-400 mt-1">請先進行「步驟一」記錄通知，再於左側清單點擊打卡以即時計算時間</p>
                     </div>
                 </div>
             </div>
@@ -391,8 +391,7 @@
                 notifyTime: notifyTimeStr,
                 notifyTimestamp: now.getTime(),
                 note: noteText,
-                dateStr: now.toLocaleDateString(),
-                isEditing: false // 預設未展開打卡輸入框
+                dateStr: now.toLocaleDateString()
             };
 
             pendingList.push(newItem);
@@ -404,27 +403,17 @@
             noteTextInput.value = '';
         });
 
-        // 點擊「人員已抵達」：切換為展開同畫面卡號輸入狀態
-        window.toggleArriveInput = function(id) {
-            const item = pendingList.find(i => i.id === id);
-            if (!item) return;
-            item.isEditing = !item.isEditing;
-            renderPendingList();
-        };
-
-        // 確認送出同畫面的抵達打卡
+        // 點擊「人員已抵達 (打卡)」：立即以此時間計算等候時間，並移入已完成清單（卡號可留空或事後補填）
         window.confirmArrival = function(id) {
             const index = pendingList.findIndex(item => item.id === id);
             if (index === -1) return;
 
             const item = pendingList[index];
-            const cardInput = document.getElementById(`inline-card-${id}`);
-            const cardNum = cardInput ? cardInput.value.trim() : '';
-
             const now = new Date();
             const arrivalTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
             const arrivalTimestamp = now.getTime();
 
+            // 以按下打卡當下計算等候時間
             const diffMs = arrivalTimestamp - item.notifyTimestamp;
             const diffMinutesExact = diffMs / 1000 / 60;
             const diffMinutesRounded = Math.round(diffMinutesExact * 10) / 10;
@@ -432,7 +421,7 @@
             const completedItem = {
                 id: item.id,
                 name: item.name,
-                cardNumber: cardNum,
+                cardNumber: '', // 初始卡號為空，可於右側補填
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
@@ -447,6 +436,16 @@
             renderPendingList();
             renderCompletedRecords();
             syncToCloud();
+        };
+
+        // 已完成清單中：即時更新卡號（不重新計算時間）
+        window.updateCardNumber = function(id, newCardVal) {
+            const rec = completedRecords.find(r => r.id === id);
+            if (rec) {
+                rec.cardNumber = newCardVal.trim();
+                saveData();
+                syncToCloud();
+            }
         };
 
         window.removePending = function(id) {
@@ -571,16 +570,7 @@
         });
 
         function saveData() {
-            // 儲存前先移除暫時的編輯狀態變數
-            const cleanPending = pendingList.map(item => ({
-                id: item.id,
-                name: item.name,
-                notifyTime: item.notifyTime,
-                notifyTimestamp: item.notifyTimestamp,
-                note: item.note,
-                dateStr: item.dateStr
-            }));
-            localStorage.setItem('two_step_pending', JSON.stringify(cleanPending));
+            localStorage.setItem('two_step_pending', JSON.stringify(pendingList));
             localStorage.setItem('two_step_completed', JSON.stringify(completedRecords));
         }
 
@@ -589,9 +579,7 @@
             const savedCompleted = localStorage.getItem('two_step_completed');
 
             if (savedPending) {
-                try { 
-                    pendingList = JSON.parse(savedPending).map(item => ({ ...item, isEditing: false })); 
-                } catch (e) { pendingList = []; }
+                try { pendingList = JSON.parse(savedPending); } catch (e) { pendingList = []; }
             }
             if (savedCompleted) {
                 try { completedRecords = JSON.parse(savedCompleted); } catch (e) { completedRecords = []; }
@@ -618,41 +606,6 @@
                 const card = document.createElement('div');
                 card.className = "bg-amber-50/60 border border-amber-200/80 rounded-xl p-3.5 flex flex-col space-y-2.5 transition hover:shadow-sm";
                 
-                let actionArea = '';
-                if (!item.isEditing) {
-                    // 未點擊打卡時顯示按鈕
-                    actionArea = `
-                        <div class="flex items-center space-x-2 pt-1">
-                            <button onclick="toggleArriveInput(${item.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow transition flex items-center justify-center space-x-1">
-                                <i class="fa-solid fa-check-circle"></i>
-                               <span>人員已抵達 (打卡)</span>
-                            </button>
-                            <button onclick="removePending(${item.id})" class="text-slate-400 hover:text-rose-600 p-2 text-xs transition" title="取消此筆">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    // 點擊打卡後，同畫面展開卡號輸入框與確認打卡按鈕
-                    actionArea = `
-                        <div class="bg-white p-2.5 rounded-lg border border-emerald-200 space-y-2 pt-1 animate-fadeIn">
-                            <div>
-                                <label class="block text-[10px] font-medium text-slate-400 mb-1">請輸入接藥人卡號：</label>
-                                <input type="text" id="inline-card-${item.id}" placeholder="輸入卡號..." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
-                            </div>
-                            <div class="flex space-x-2">
-                                <button onclick="confirmArrival(${item.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow transition flex items-center justify-center space-x-1">
-                                    <i class="fa-solid fa-check"></i>
-                                    <span>確認完成打卡</span>
-                                </button>
-                                <button onclick="toggleArriveInput(${item.id})" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs py-1.5 px-3 rounded-lg transition">
-                                    取消
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
-
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
                         <span class="font-bold text-slate-800 text-sm">${escapeHtml(item.name)}</span>
@@ -661,7 +614,15 @@
                         </span>
                     </div>
                     ${item.note ? `<div class="text-xs text-slate-500 italic"><i class="fa-solid fa-note-sticky mr-1"></i>備註：${escapeHtml(item.note)}</div>` : ''}
-                    ${actionArea}
+                    <div class="flex items-center space-x-2 pt-1">
+                        <button onclick="confirmArrival(${item.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow transition flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-check-circle"></i>
+                            <span>人員已抵達 (即刻打卡計時)</span>
+                        </button>
+                        <button onclick="removePending(${item.id})" class="text-slate-400 hover:text-rose-600 p-2 text-xs transition" title="取消此筆">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
                 `;
                 pendingContainer.appendChild(card);
             });
@@ -693,10 +654,13 @@
                 card.className = "bg-slate-50 border border-slate-200 rounded-xl p-4 transition hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3";
                 
                 card.innerHTML = `
-                    <div class="space-y-1">
+                    <div class="space-y-1 flex-grow">
                         <div class="flex items-center space-x-2 flex-wrap gap-y-1">
                             <span class="font-bold text-slate-800 text-sm">${escapeHtml(rec.name)}</span>
-                            ${rec.cardNumber ? `<span class="text-xs px-2 py-0.5 rounded border font-mono font-medium bg-slate-100 text-slate-700 border-slate-300">卡號: ${escapeHtml(rec.cardNumber)}</span>` : ''}
+                            <div class="flex items-center space-x-1">
+                                <span class="text-xs text-slate-400 font-medium">卡號:</span>
+                                <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="填卡號..." oninput="updateCardNumber(${rec.id}, this.value)" class="w-24 bg-white border border-slate-300 rounded px-2 py-0.5 text-xs font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
                             <span class="text-xs px-2.5 py-0.5 rounded-full border font-semibold bg-indigo-50 text-indigo-700 border-indigo-200">
                                 等候: ${rec.waitingMinutes} 分鐘
                             </span>
