@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人員抵達與等候時間打卡與統計系統</title>
+    <title>人員抵達與等候時間打卡與統計系統（雲端版）</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts Inter -->
@@ -39,13 +39,18 @@
                     <i class="fa-solid fa-business-time text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
-                    <p class="text-xs text-slate-500">通知時間紀錄 ➔ 實際抵達打卡 ➔ 後台統計與資料匯出</p>
+                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統 (雲端同步版)</h1>
+                    <p class="text-xs text-slate-500">通知時間紀錄 ➔ 實際抵達打卡 ➔ 雲端硬碟同步</p>
                 </div>
             </div>
-            <div class="text-right">
-                <div id="live-clock" class="text-lg font-bold text-indigo-600 font-mono">00:00:00</div>
-                <div id="live-date" class="text-xs text-slate-400">YYYY-MM-DD</div>
+            <div class="flex items-center space-x-4">
+                <button id="open-config-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-xl transition flex items-center">
+                    <i class="fa-solid fa-cloud-arrow-up mr-1.5 text-indigo-600"></i> 雲端設定
+                </button>
+                <div class="text-right">
+                    <div id="live-clock" class="text-lg font-bold text-indigo-600 font-mono">00:00:00</div>
+                    <div id="live-date" class="text-xs text-slate-400">YYYY-MM-DD</div>
+                </div>
             </div>
         </div>
     </header>
@@ -119,10 +124,16 @@
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-[520px]">
                 <!-- Header with Export Actions -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-3">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center">
-                        <i class="fa-solid fa-chart-line text-indigo-500 mr-2"></i> 後台統計與已完成紀錄
-                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-chart-line text-indigo-500 mr-2"></i> 後台統計與已完成紀錄
+                        </h2>
+                        <span id="sync-status" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">未同步雲端</span>
+                    </div>
                     <div class="flex items-center space-x-2 no-print">
+                        <button id="sync-cloud-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-2 rounded-xl transition flex items-center shadow-sm" title="將資料同步至雲端硬碟">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1.5 text-sm"></i> 同步雲端
+                        </button>
                         <button id="export-csv-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-2 rounded-xl transition flex items-center shadow-sm">
                             <i class="fa-solid fa-file-csv mr-1.5 text-sm"></i> 匯出 CSV
                         </button>
@@ -156,8 +167,40 @@
     </main>
 
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 no-print">
-        <p>人員抵達與等候時間打卡系統 &copy; 2026 - 支援 CSV 匯出與列印報表</p>
+        <p>人員抵達與等候時間打卡系統 &copy; 2026 - 支援 Google 雲端硬碟連動與 CSV 匯出</p>
     </footer>
+
+    <!-- Cloud Config Modal -->
+    <div id="config-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="config-modal-content">
+            <h3 class="font-bold text-lg text-slate-900 mb-1 flex items-center">
+                <i class="fa-solid fa-cloud text-indigo-600 mr-2"></i> Google 雲端硬碟連動設定
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">請輸入您的 Google Apps Script 網址 (Web App URL) 即可串接雲端試算表儲存。</p>
+            
+            <div class="space-y-3 mb-5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Apps Script 網址 (Web App URL)</label>
+                    <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                </div>
+                <div class="bg-indigo-50 rounded-xl p-3 text-xs text-indigo-700 space-y-1">
+                    <p class="font-bold"><i class="fa-solid fa-circle-info mr-1"></i> 如何串接？</p>
+                    <p>1. 建立 Google 試算表並外掛 Apps Script 接收 POST/GET 請求。</p>
+                    <p>2. 部署為網頁應用程式 (Web App)，存取權限設為「所有人」。</p>
+                    <p>3. 將產生的網址貼於上方即可雙向同步與備份。</p>
+                </div>
+            </div>
+
+            <div class="flex space-x-2">
+                <button id="config-cancel-btn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-medium transition">
+                    取消
+                </button>
+                <button id="config-save-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition">
+                    儲存設定並載入雲端
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Arrival Details & Card Number Modal -->
     <div id="arrive-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
@@ -229,10 +272,20 @@
         const statAvgTime = document.getElementById('stat-avg-time');
         const statMaxTime = document.getElementById('stat-max-time');
 
-        // Export Buttons
+        // Cloud & Export Buttons
+        const openConfigBtn = document.getElementById('open-config-btn');
+        const syncCloudBtn = document.getElementById('sync-cloud-btn');
         const exportCsvBtn = document.getElementById('export-csv-btn');
         const printPdfBtn = document.getElementById('print-pdf-btn');
         const printDateLabel = document.getElementById('print-date-label');
+        const syncStatus = document.getElementById('sync-status');
+
+        // Config Modal Elements
+        const configModal = document.getElementById('config-modal');
+        const configModalContent = document.getElementById('config-modal-content');
+        const scriptUrlInput = document.getElementById('script-url-input');
+        const configCancelBtn = document.getElementById('config-cancel-btn');
+        const configSaveBtn = document.getElementById('config-save-btn');
 
         // Modal Elements
         const customModal = document.getElementById('custom-modal');
@@ -255,6 +308,7 @@
         let pendingList = []; 
         let completedRecords = []; 
         let currentTargetId = null;
+        let scriptUrl = localStorage.getItem('gas_script_url') || '';
 
         function initApp() {
             updateClock();
@@ -263,6 +317,12 @@
             
             const now = new Date();
             printDateLabel.textContent = `列印日期：${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+            
+            if (scriptUrl) {
+                syncStatus.textContent = '已連結雲端';
+                syncStatus.className = 'text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium';
+                fetchFromCloud();
+            }
         }
 
         function updateClock() {
@@ -316,6 +376,43 @@
             if (e.target === customModal) hideModal();
         });
 
+        // Config Modal Controls
+        openConfigBtn.addEventListener('click', () => {
+            scriptUrlInput.value = scriptUrl;
+            configModal.classList.remove('hidden');
+            setTimeout(() => {
+                configModal.classList.remove('opacity-0');
+                configModalContent.classList.remove('scale-95');
+                configModalContent.classList.add('scale-100');
+            }, 10);
+        });
+
+        function closeConfigModal() {
+            configModal.classList.add('opacity-0');
+            configModalContent.classList.remove('scale-100');
+            configModalContent.classList.add('scale-95');
+            setTimeout(() => {
+                configModal.classList.add('hidden');
+            }, 300);
+        }
+
+        configCancelBtn.addEventListener('click', closeConfigModal);
+
+        configSaveBtn.addEventListener('click', () => {
+            scriptUrl = scriptUrlInput.value.trim();
+            localStorage.setItem('gas_script_url', scriptUrl);
+            closeConfigModal();
+            if (scriptUrl) {
+                syncStatus.textContent = '已連結雲端';
+                syncStatus.className = 'text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium';
+                showModal('設定成功', '雲端指令碼網址已儲存，正在嘗試同步資料...', 'success');
+                fetchFromCloud();
+            } else {
+                syncStatus.textContent = '未同步雲端';
+                syncStatus.className = 'text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full';
+            }
+        });
+
         notifyBtn.addEventListener('click', () => {
             const personName = personNameInput.value.trim();
             if (!personName) {
@@ -332,13 +429,14 @@
                 name: personName,
                 notifyTime: notifyTimeStr,
                 notifyTimestamp: now.getTime(),
-                note: noteText, // 保留第一次打卡的備註
+                note: noteText,
                 dateStr: now.toLocaleDateString()
             };
 
             pendingList.push(newItem);
             saveData();
             renderPendingList();
+            syncToCloud();
 
             personNameInput.value = '';
             noteTextInput.value = '';
@@ -346,14 +444,13 @@
             showModal('通知時間已記錄', `已成功建立 ${personName} 的通知紀錄 (${notifyTimeStr})，等待人員抵達打卡。`, 'success');
         });
 
-        // Open Second Step Arrival Modal
         window.openArrivalModal = function(id) {
             const item = pendingList.find(i => i.id === id);
             if (!item) return;
 
             currentTargetId = id;
             modalArriveName.value = item.name;
-            modalArriveCard.value = ''; // 卡號欄位保持空白
+            modalArriveCard.value = '';
 
             arriveModal.classList.remove('hidden');
             setTimeout(() => {
@@ -378,14 +475,13 @@
             if (e.target === arriveModal) closeArrivalModal();
         });
 
-        // Confirm Arrival with Card Number
         modalConfirmBtn.addEventListener('click', () => {
             const index = pendingList.findIndex(item => item.id === currentTargetId);
             if (index === -1) return;
 
             const item = pendingList[index];
             const finalName = modalArriveName.value.trim() || item.name;
-            const cardNum = modalArriveCard.value.trim() || ''; // 接藥人卡號
+            const cardNum = modalArriveCard.value.trim() || '';
 
             const now = new Date();
             const arrivalTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
@@ -398,11 +494,11 @@
             const completedItem = {
                 id: item.id,
                 name: finalName,
-                cardNumber: cardNum,           // 接藥人卡號
+                cardNumber: cardNum,
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
-                note: item.note,               // 保留步驟一的原始備註
+                note: item.note,
                 completedAt: now.toLocaleString()
             };
 
@@ -413,6 +509,7 @@
             renderPendingList();
             renderCompletedRecords();
             closeArrivalModal();
+            syncToCloud();
 
             showModal('抵達打卡完成', `${finalName} 已抵達！等候時間共計約 ${diffMinutesRounded} 分鐘。`, 'success');
         });
@@ -421,12 +518,14 @@
             pendingList = pendingList.filter(item => item.id !== id);
             saveData();
             renderPendingList();
+            syncToCloud();
         };
 
         window.deleteRecord = function(id) {
             completedRecords = completedRecords.filter(r => r.id !== id);
             saveData();
             renderCompletedRecords();
+            syncToCloud();
         };
 
         clearHistoryBtn.addEventListener('click', () => {
@@ -435,11 +534,63 @@
                 completedRecords = [];
                 saveData();
                 renderCompletedRecords();
+                syncToCloud();
                 showModal('已清空', '後台統計紀錄已被全部清除。', 'info');
             }
         });
 
-        // Export to CSV Feature
+        // Cloud Synchronization Functions
+        async function syncToCloud() {
+            if (!scriptUrl) return;
+            syncStatus.textContent = '同步中...';
+            try {
+                const payload = {
+                    action: 'saveData',
+                    pending: pendingList,
+                    completed: completedRecords
+                };
+                await fetch(scriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                syncStatus.textContent = '已同步雲端';
+                syncStatus.className = 'text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium';
+            } catch (err) {
+                console.error(err);
+                syncStatus.textContent = '同步失敗';
+                syncStatus.className = 'text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-medium';
+            }
+        }
+
+        async function fetchFromCloud() {
+            if (!scriptUrl) return;
+            try {
+                const response = await fetch(scriptUrl);
+                const data = await response.json();
+                if (data && data.pending && data.completed) {
+                    pendingList = data.pending;
+                    completedRecords = data.completed;
+                    saveData();
+                    renderPendingList();
+                    renderCompletedRecords();
+                    syncStatus.textContent = '已從雲端載入';
+                }
+            } catch (err) {
+                console.error('無法從雲端讀取資料:', err);
+            }
+        }
+
+        syncCloudBtn.addEventListener('click', () => {
+            if (!scriptUrl) {
+                openConfigBtn.click();
+                return;
+            }
+            syncToCloud();
+            showModal('同步完成', '已成功將最新打卡狀態上傳至 Google 雲端硬碟。', 'success');
+        });
+
         exportCsvBtn.addEventListener('click', () => {
             if (completedRecords.length === 0) {
                 showModal('無法匯出', '目前沒有任何已完成的打卡紀錄可供匯出。', 'warning');
@@ -476,7 +627,6 @@
             showModal('匯出成功', '已成功下載打卡紀錄 CSV 檔案。', 'success');
         });
 
-        // Print / PDF Export Feature
         printPdfBtn.addEventListener('click', () => {
             if (completedRecords.length === 0) {
                 showModal('無法列印', '目前沒有任何已完成的打卡紀錄可供列印。', 'warning');
