@@ -250,6 +250,7 @@
         let pendingList = []; 
         let completedRecords = []; 
         let scriptUrl = localStorage.getItem('gas_script_url') || '';
+        let saveTimeout = null;
 
         function initApp() {
             updateClock();
@@ -348,7 +349,7 @@
             pendingList.push(newItem);
             saveLocalData();
             renderPendingList();
-            syncPendingOnly();
+            syncFullDataToCloud();
 
             personNameInput.value = '';
             noteTextInput.value = '';
@@ -380,8 +381,7 @@
             saveLocalData();
             renderPendingList();
             renderCompletedRecords();
-
-            syncSingleCompletedItem(completedItem);
+            syncFullDataToCloud();
         };
 
         window.updateCardNumber = function(id, newCardVal) {
@@ -389,6 +389,12 @@
             if (rec) {
                 rec.cardNumber = newCardVal.trim();
                 saveLocalData();
+                
+                // 防呆機制：輸入停止 800ms 後自動同步至雲端，避免頻繁發送請求
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    syncFullDataToCloud();
+                }, 800);
             }
         };
 
@@ -396,13 +402,14 @@
             pendingList = pendingList.filter(item => item.id !== id);
             saveLocalData();
             renderPendingList();
-            syncPendingOnly();
+            syncFullDataToCloud();
         };
 
         window.deleteRecord = function(id) {
             completedRecords = completedRecords.filter(r => r.id !== id);
             saveLocalData();
             renderCompletedRecords();
+            syncFullDataToCloud();
         };
 
         clearHistoryBtn.addEventListener('click', () => {
@@ -415,13 +422,13 @@
             }
         });
 
-        async function syncSingleCompletedItem(item) {
+        async function syncFullDataToCloud() {
             if (!scriptUrl) return;
             syncStatus.textContent = '同步中...';
             try {
                 const payload = {
                     pending: pendingList,
-                    completed: [item]
+                    completed: completedRecords
                 };
                 const response = await fetch(scriptUrl, {
                     method: 'POST',
@@ -439,19 +446,6 @@
             }
         }
 
-        async function syncPendingOnly() {
-            if (!scriptUrl) return;
-            try {
-                await fetch(scriptUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ pending: pendingList, completed: [] })
-                });
-            } catch (err) {
-                console.error('Pending sync error:', err);
-            }
-        }
-
         async function fetchFromCloud() {
             if (!scriptUrl) return;
             syncStatus.textContent = '載入中...';
@@ -464,7 +458,7 @@
                     if (Array.isArray(data.pending)) {
                         pendingList = data.pending;
                     }
-                    if (Array.isArray(data.completed) && data.completed.length > 0) {
+                    if (Array.isArray(data.completed)) {
                         completedRecords = data.completed;
                     }
                     saveLocalData();
