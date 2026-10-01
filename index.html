@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人員抵達與等候時間打卡系統（大字體增量同步版）</title>
+    <title>人員抵達與等候時間打卡系統（雲端資料保留防護版）</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -27,7 +27,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
-                    <p class="text-xs text-slate-500">大字體增量防護版</p>
+                    <p class="text-xs text-slate-500">雲端資料保留防護版</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -138,7 +138,7 @@
     </main>
 
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 no-print">
-        <p>人員抵達與等候時間打卡系統 &copy; 2026 - 大字體增量防護版</p>
+        <p>人員抵達與等候時間打卡系統 &copy; 2026 - 雲端資料保留防護版</p>
     </footer>
 
     <!-- 設定 Modal -->
@@ -361,12 +361,14 @@
             }
         };
 
+        // 僅從前端移除（不向雲端發送刪除，雲端資料會完整保留）
         window.removePending = function(id) {
             pendingList = pendingList.filter(item => item.id !== id);
             saveLocalData();
             renderPendingList();
         };
 
+        // 僅從前端移除（不向雲端發送刪除，雲端資料會完整保留）
         window.deleteRecord = function(id) {
             completedRecords = completedRecords.filter(r => r.id !== id);
             saveLocalData();
@@ -375,7 +377,7 @@
 
         clearHistoryBtn.addEventListener('click', () => {
             if (completedRecords.length === 0) return;
-            if (confirm('確定要清空前端畫面上的已完成紀錄嗎？\n(提示：這只會清除畫面，雲端 Google 試算表的歷史紀錄會完整保留)')) {
+            if (confirm('確定要清空前端畫面上的已完成紀錄嗎？\n(提示：這只會清除畫面，雲端 Google 試算表的歷史紀錄將會完整保留不被刪除)')) {
                 completedRecords = [];
                 saveLocalData();
                 renderCompletedRecords();
@@ -500,13 +502,11 @@
                 card.className = "bg-amber-50/65 border border-amber-200 rounded-xl p-4 flex flex-col space-y-3 transition hover:shadow-sm";
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
-                        <!-- 放大待辦清單的人員名稱字體 -->
                         <span class="font-bold text-slate-900 text-base">${escapeHtml(item.name)}</span>
                         <span class="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-mono font-bold"><i class="fa-solid fa-bell mr-1"></i>${item.notifyTime}</span>
                     </div>
                     ${item.note ? `<div class="text-xs text-slate-600 italic">備註：${escapeHtml(item.note)}</div>` : ''}
                     <div class="flex items-center space-x-2 pt-1">
-                        <!-- 放大「人員已抵達」按鈕字體與高度 -->
                         <button onclick="confirmArrival(${item.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 px-3 rounded-xl shadow transition flex items-center justify-center space-x-1.5">
                             <i class="fa-solid fa-check-circle text-base"></i><span>人員已抵達 (打卡計時)</span>
                         </button>
@@ -539,14 +539,11 @@
                 card.innerHTML = `
                     <div class="space-y-1.5 flex-grow">
                         <div class="flex items-center space-x-3 flex-wrap gap-y-2">
-                            <!-- 放大已完成紀錄的人員名稱字體 -->
                             <span class="font-bold text-slate-900 text-base">${escapeHtml(rec.name)}</span>
                             <div class="flex items-center space-x-1.5">
                                 <span class="text-xs font-medium text-slate-500">卡號:</span>
-                                <!-- 放大卡號輸入框字體與寬度 -->
                                 <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入卡號" oninput="updateCardNumber(${rec.id}, this.value)" class="w-28 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             </div>
-                            <!-- 放大等候時間標籤字體 -->
                             <span class="text-xs px-3 py-1 rounded-full border font-bold bg-indigo-50 text-indigo-700 border-indigo-200">等候: ${rec.waitingMinutes} 分鐘</span>
                         </div>
                         <div class="text-xs text-slate-600 flex items-center space-x-4">
