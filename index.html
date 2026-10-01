@@ -215,6 +215,20 @@
         let scriptUrl = localStorage.getItem('gas_script_url') || '';
         let saveTimeouts = {};
 
+        // 格式化時間顯示：過濾掉 1899-12-30 或多餘的 ISO 格式，只保留正常的時分秒
+        function formatTimeDisplay(timeStr) {
+            if (!timeStr) return '';
+            const str = String(timeStr);
+            // 如果字串包含 T（例如 1899-12-30T21:03:53.000Z）
+            if (str.includes('T')) {
+                const parts = str.split('T');
+                if (parts[1]) {
+                    return parts[1].split('.')[0]; // 取出 21:03:53
+                }
+            }
+            return str;
+        }
+
         function initApp() {
             updateClock();
             setInterval(updateClock, 1000);
@@ -361,14 +375,12 @@
             }
         };
 
-        // 僅從前端移除（不向雲端發送刪除，雲端資料會完整保留）
         window.removePending = function(id) {
             pendingList = pendingList.filter(item => item.id !== id);
             saveLocalData();
             renderPendingList();
         };
 
-        // 僅從前端移除（不向雲端發送刪除，雲端資料會完整保留）
         window.deleteRecord = function(id) {
             completedRecords = completedRecords.filter(r => r.id !== id);
             saveLocalData();
@@ -451,7 +463,7 @@
             }
             let csvContent = '\uFEFF項次,人員名稱,接藥人卡號,通知時間,抵達時間,等候時間(分鐘),備註說明,完成時間\n';
             completedRecords.forEach((rec, index) => {
-                csvContent += `${index + 1},"${rec.name}","${rec.cardNumber || ''}",${rec.notifyTime},${rec.arrivalTime},${rec.waitingMinutes},"${rec.note || ''}","${rec.completedAt}"\n`;
+                csvContent += `${index + 1},"${rec.name}","${rec.cardNumber || ''}",${formatTimeDisplay(rec.notifyTime)},${formatTimeDisplay(rec.arrivalTime)},${rec.waitingMinutes},"${rec.note || ''}","${rec.completedAt}"\n`;
             });
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -503,7 +515,7 @@
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
                         <span class="font-bold text-slate-900 text-base">${escapeHtml(item.name)}</span>
-                        <span class="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-mono font-bold"><i class="fa-solid fa-bell mr-1"></i>${item.notifyTime}</span>
+                        <span class="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-mono font-bold"><i class="fa-solid fa-bell mr-1"></i>${formatTimeDisplay(item.notifyTime)}</span>
                     </div>
                     ${item.note ? `<div class="text-xs text-slate-600 italic">備註：${escapeHtml(item.note)}</div>` : ''}
                     <div class="flex items-center space-x-2 pt-1">
@@ -547,8 +559,8 @@
                             <span class="text-xs px-3 py-1 rounded-full border font-bold bg-indigo-50 text-indigo-700 border-indigo-200">等候: ${rec.waitingMinutes} 分鐘</span>
                         </div>
                         <div class="text-xs text-slate-600 flex items-center space-x-4">
-                            <span>通知: <strong class="font-mono text-slate-800">${rec.notifyTime}</strong></span>
-                            <span>抵達: <strong class="font-mono text-slate-800">${rec.arrivalTime}</strong></span>
+                            <span>通知: <strong class="font-mono text-slate-800">${formatTimeDisplay(rec.notifyTime)}</strong></span>
+                            <span>抵達: <strong class="font-mono text-slate-800">${formatTimeDisplay(rec.arrivalTime)}</strong></span>
                         </div>
                         ${rec.note ? `<div class="text-xs text-slate-500 italic">備註：${escapeHtml(rec.note)}</div>` : ''}
                     </div>
