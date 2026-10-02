@@ -3,73 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>外勤出發返回雲端打卡系統</title>
+    <title>雙階段抵達與等候打卡系統</title>
     <style>
         body { font-family: sans-serif; background: #f8fafc; color: #1e293b; max-width: 500px; margin: 0 auto; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; }
         input, button { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         button { background: #4f46e5; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { opacity: 0.9; }
-        .btn-go { background: #0284c7; }
-        .btn-back { background: #059669; }
-        .btn-delete { background: #ef4444; font-size: 14px; padding: 8px; margin-top: 10px; }
+        .btn-notify { background: #0284c7; }
+        .btn-arrive { background: #059669; }
+        .btn-delete { background: #ef4444; font-size: 13px; padding: 6px; margin-top: 10px; width: auto; float: right; }
         .flex { display: flex; gap: 10px; }
-        .stat-box { background: #e0e7ff; color: #3730a3; padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; margin-bottom: 10px; }
-        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+        .badge { background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; }
+        .log-card { border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 12px; background: #fff; }
     </style>
 </head>
 <body>
 
-    <h2>外勤出發/返回打卡系統</h2>
+    <h2>雙階段抵達與等候打卡系統</h2>
 
-    <!-- 身分設定卡片 -->
+    <!-- 身分與卡號設定卡片 -->
     <div class="card">
-        <h3>1. 個人身分設定</h3>
-        <label>姓名：</label>
-        <input type="text" id="input-name" placeholder="請輸入您的姓名">
-        <label>組別：</label>
-        <input type="text" id="input-group" placeholder="請輸入組別">
-        <button onclick="saveProfile()">儲存身分</button>
-        <div id="profile-display" style="color: #64748b; font-size: 14px; text-align: center; margin-top: 5px;">目前身分：尚未設定</div>
+        <h3>1. 打藥基本資料設定</h3>
+        <label>人員名稱：</label>
+        <input type="text" id="input-name" placeholder="例如: M999">
+        <label>接藥人卡號：</label>
+        <input type="text" id="input-group" placeholder="例如: 4453">
+        <button onclick="saveProfile()">儲存身分與卡號</button>
+        <div id="profile-display" style="color: #64748b; font-size: 14px; text-align: center;">目前設定：尚未設定</div>
     </div>
 
-    <!-- 打卡動作卡片 -->
+    <!-- 打卡操作卡片 -->
     <div class="card">
-        <h3>2. 外勤打卡操作</h3>
+        <h3>2. 打卡作業操作</h3>
         <div class="flex">
-            <button class="btn-go" onclick="doCheckIn('出發')">🚀 出發</button>
-            <button class="btn-back" onclick="doCheckIn('返回')">🏠 返回</button>
+            <button class="btn-notify" onclick="doCheckIn('通知')">📢 通知時間</button>
+            <button class="btn-arrive" onclick="doCheckIn('抵達')">✅ 抵達時間</button>
         </div>
     </div>
 
-    <!-- 累計與紀錄顯示 -->
+    <!-- 紀錄顯示 -->
     <div class="card">
-        <h3>3. 今日外勤結算與紀錄</h3>
-        <div class="stat-box" id="total-duration-display">本日累計外勤時間：0 小時 0 分鐘</div>
+        <h3>3. 今日打卡紀錄與等候時間</h3>
         <div id="log-container" style="font-size: 14px; color: #475569;">尚無打卡紀錄</div>
-        <button class="btn-delete" onclick="deleteLastLog()">刪除最後一筆紀錄</button>
     </div>
 
     <script>
         // 【重要】請將下方引號內的網址換成您的 Google Apps Script 部署網址
         const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
 
-        let userName = localStorage.getItem('s_name') || '';
-        let userGroup = localStorage.getItem('s_group') || '';
+        let userName = localStorage.getItem('med_name') || '';
+        let userGroup = localStorage.getItem('med_group') || '';
         
-        // 取得台灣當日日期 Key (YYYY-MM-DD)
         const getTaiwanDateStr = (date = new Date()) => {
             return date.toLocaleDateString('sv', { timeZone: 'Asia/Taipei' });
         };
 
         let todayKey = getTaiwanDateStr();
-        let myLogs = JSON.parse(localStorage.getItem('s_logs_' + todayKey) || '[]');
+        let myLogs = JSON.parse(localStorage.getItem('med_logs_' + todayKey) || '[]');
 
         window.onload = () => {
             if(userName && userGroup) {
                 document.getElementById('input-name').value = userName;
                 document.getElementById('input-group').value = userGroup;
-                document.getElementById('profile-display').textContent = `目前身分：${userGroup} - ${userName}`;
+                document.getElementById('profile-display').textContent = `人員：${userName} | 卡號：${userGroup}`;
             }
             renderUI();
         };
@@ -78,24 +75,22 @@
             userName = document.getElementById('input-name').value.trim();
             userGroup = document.getElementById('input-group').value.trim();
             if(!userName || !userGroup) {
-                alert('請填寫姓名與組別！');
+                alert('請完整填寫人員名稱與接藥人卡號！');
                 return;
             }
-            localStorage.setItem('s_name', userName);
-            localStorage.setItem('s_group', userGroup);
-            document.getElementById('profile-display').textContent = `目前身分：${userGroup} - ${userName}`;
+            localStorage.setItem('med_name', userName);
+            localStorage.setItem('med_group', userGroup);
+            document.getElementById('profile-display').textContent = `人員：${userName} | 卡號：${userGroup}`;
             alert('身分儲存成功！');
         }
 
         function doCheckIn(actionType) {
             if(!userName || !userGroup) {
-                alert('請先在上方設定並儲存您的姓名與組別！');
+                alert('請先在上方設定並儲存人員名稱與接藥人卡號！');
                 return;
             }
 
             const now = new Date();
-            
-            // 強制使用台灣時區 (Asia/Taipei) 取得精確的 時:分:秒 與 日期
             const timeStr = now.toLocaleTimeString('zh-TW', { 
                 timeZone: 'Asia/Taipei', 
                 hour12: false,
@@ -105,12 +100,12 @@
             });
             const dateStr = getTaiwanDateStr(now);
 
-            myLogs.push({ action: actionType, time: timeStr });
-            localStorage.setItem('s_logs_' + dateStr, JSON.stringify(myLogs));
+            myLogs.push({ action: actionType, time: timeStr, timestamp: now.getTime() });
+            localStorage.setItem('med_logs_' + dateStr, JSON.stringify(myLogs));
 
             renderUI();
 
-            // 異步傳送到 Google 試算表
+            // 異步傳送到 Google 試算表（對應欄位：人員名稱、接藥人卡號、動作、時間、日期）
             if (GOOGLE_SCRIPT_URL !== "YOUR_GOOGLE_APPS_SCRIPT_URL") {
                 const payload = {
                     name: userName,
@@ -126,24 +121,23 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 }).then(() => {
-                    console.log("已成功同步至雲端試算表");
+                    console.log("已同步至雲端試算表");
                 }).catch(err => {
                     console.error("同步失敗", err);
                 });
             }
 
-            alert(`打卡成功：${actionType} (${timeStr}) 已同步至雲端`);
+            alert(`${actionType}時間紀錄成功 (${timeStr}) 已同步`);
         }
 
-        // 刪除最後一筆紀錄功能
         function deleteLastLog() {
             if (myLogs.length === 0) {
                 alert('目前沒有可以刪除的紀錄！');
                 return;
             }
-            if (confirm('確定要刪除最後一筆打卡紀錄嗎？')) {
+            if (confirm('確定要刪除最後一筆紀錄嗎？')) {
                 myLogs.pop();
-                localStorage.setItem('s_logs_' + todayKey, JSON.stringify(myLogs));
+                localStorage.setItem('med_logs_' + todayKey, JSON.stringify(myLogs));
                 renderUI();
                 alert('已成功刪除最後一筆紀錄！');
             }
@@ -151,36 +145,46 @@
 
         function renderUI() {
             const logContainer = document.getElementById('log-container');
-            const totalDurationDisplay = document.getElementById('total-duration-display');
 
             if(myLogs.length === 0) {
                 logContainer.innerHTML = '今日尚無打卡紀錄';
-                totalDurationDisplay.textContent = '本日累計外勤時間：0 小時 0 分鐘';
                 return;
             }
 
             let html = '';
-            let totalMinutes = 0;
-            let lastGoTime = null;
+            let lastNotifyTime = null;
+            let lastNotifyTimestamp = null;
 
-            myLogs.forEach((log) => {
-                html += `<div class="log-item"><span>• [${log.time}] <b>${log.action}</b></span></div>`;
-
-                if (log.action === '出發') {
-                    lastGoTime = log.time;
-                } else if (log.action === '返回' && lastGoTime) {
-                    const diffMs = new Date(`${todayKey}T${log.time}`) - new Date(`${todayKey}T${lastGoTime}`);
-                    if (diffMs > 0) {
-                        totalMinutes += Math.floor(diffMs / 60000);
+            myLogs.forEach((log, index) => {
+                if (log.action === '通知') {
+                    lastNotifyTime = log.time;
+                    lastNotifyTimestamp = log.timestamp;
+                    html += `
+                        <div class="log-card">
+                            <div><b>人員：${userName}</b> | 卡號：${userGroup}</div>
+                            <div style="margin-top: 6px;">
+                                <span class="badge">通知: ${log.time}</span>
+                            </div>
+                    `;
+                } else if (log.action === '抵達') {
+                    let waitMins = 0;
+                    if (lastNotifyTimestamp) {
+                        const diffMs = log.timestamp - lastNotifyTimestamp;
+                        waitMins = (diffMs / 60000).toFixed(1);
                     }
-                    lastGoTime = null;
+                    html += `
+                        <div style="margin-top: 6px;">
+                            <span class="badge" style="background: #d1fae5; color: #065f46;">抵達: ${log.time}</span>
+                            <span class="badge" style="background: #fef3c7; color: #92400e; margin-left: 5px;">等候: ${waitMins} 分鐘</span>
+                        </div>
+                    `;
+                    lastNotifyTime = null;
+                    lastNotifyTimestamp = null;
                 }
             });
 
+            html += `<div style="clear: both; margin-top: 15px;"><button class="btn-delete" onclick="deleteLastLog()">刪除最後一筆紀錄</button></div>`;
             logContainer.innerHTML = html;
-            const hours = Math.floor(totalMinutes / 60);
-            const mins = totalMinutes % 60;
-            totalDurationDisplay.textContent = `本日累計外勤時間：${hours} 小時 ${mins} 分鐘`;
         }
     </script>
 </body>
