@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雙階段抵達與等候打卡系統（自動音效解鎖版）</title>
+    <title>雙階段抵達與等候打卡系統（大音量自動解鎖版）</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e2e8f0; }
@@ -90,7 +90,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
-                    <p class="text-xs text-slate-500">自動音效解鎖版</p>
+                    <p class="text-xs text-slate-500">大音量自動解鎖版</p>
                 </div>
             </div>
             <div class="flex items-center space-x-3">
@@ -276,7 +276,7 @@
             } catch (e) {}
         }, { once: true });
 
-        // 內建合成音效函式
+        // 內建合成音效函式（已調高音量）
         function playBeep(type = 'success') {
             try {
                 if (!audioCtx) {
@@ -294,17 +294,19 @@
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
                     osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08); 
-                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    // 音量調大至 0.8
+                    gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
                     osc.start();
-                    osc.stop(audioCtx.currentTime + 0.3);
+                    osc.stop(audioCtx.currentTime + 0.35);
                 } else {
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(440, audioCtx.currentTime); 
-                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                    // 音量調大至 0.8
+                    gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
                     osc.start();
-                    osc.stop(audioCtx.currentTime + 0.2);
+                    osc.stop(audioCtx.currentTime + 0.25);
                 }
             } catch (e) {
                 console.log('Audio error', e);
