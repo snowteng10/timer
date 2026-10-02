@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雙階段抵達與等候打卡系統（完整音效版）</title>
+    <title>雙階段抵達與等候打卡系統（自動音效解鎖版）</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e2e8f0; }
@@ -90,10 +90,10 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
-                    <p class="text-xs text-slate-500">完整音效版</p>
+                    <p class="text-xs text-slate-500">自動音效解鎖版</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-3">
                 <button id="open-config-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-xl transition flex items-center">
                     <i class="fa-solid fa-cloud-arrow-up mr-1.5 text-indigo-600"></i> 雲端設定
                 </button>
@@ -264,7 +264,19 @@
         let saveTimeouts = {};
         let audioCtx = null;
 
-        // 內建合成音效函式 (不需要額外音檔)
+        // 自動解鎖音效：只要使用者在網頁上點擊任何地方，就自動啟動音效環境
+        document.addEventListener('click', () => {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (e) {}
+        }, { once: true });
+
+        // 內建合成音效函式
         function playBeep(type = 'success') {
             try {
                 if (!audioCtx) {
@@ -279,25 +291,23 @@
                 gain.connect(audioCtx.destination);
 
                 if (type === 'success') {
-                    // 輕脆的高音 (打卡成功 / 抵達)
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
                     osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08); 
-                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
                     osc.start();
                     osc.stop(audioCtx.currentTime + 0.3);
                 } else {
-                    // 提示音 (加入待抵達)
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(440, audioCtx.currentTime); 
-                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
                     osc.start();
                     osc.stop(audioCtx.currentTime + 0.2);
                 }
             } catch (e) {
-                console.log('Audio not allowed yet', e);
+                console.log('Audio error', e);
             }
         }
 
@@ -383,7 +393,7 @@
                 return;
             }
 
-            playBeep('notify'); // 播放加入通知音效
+            playBeep('notify'); 
 
             const now = new Date();
             const newItem = {
@@ -408,7 +418,7 @@
             const index = pendingList.findIndex(item => item.id === id);
             if (index === -1) return;
 
-            playBeep('success'); // 播放打卡完成音效
+            playBeep('success'); 
 
             const item = pendingList[index];
             const now = new Date();
