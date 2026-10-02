@@ -3,24 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人員抵達與等候時間打卡系統（內嵌樣式防護版）</title>
-    <!-- 使用 FontAwesome 圖示 -->
+    <title>人員抵達與等候時間打卡系統（修復版）</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 內嵌基本與排版樣式，確保 iPad / 任何環境不會因網路阻擋而變成無色彩純文字 -->
     <style>
         *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e2e8f0; }
         html { line-height: 1.5; -webkit-text-size-adjust: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         body { margin: 0; background-color: #f8fafc; color: #1e293b; min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; }
         h1, h2, h3, p { margin: 0; }
-        button { cursor: pointer; background-color: transparent; background-image: none; }
-        input { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; color: inherit; margin: 0; padding: 0; }
+        button { cursor: pointer; background-color: transparent; }
+        input { font-family: inherit; font-size: 100%; color: inherit; }
         
-        /* 常用 Utility 模擬 */
         .flex { display: flex; }
         .flex-col { flex-direction: column; }
         .items-center { align-items: center; }
         .justify-between { justify-content: space-between; }
-        .justify-center { justify-content: center; }
         .space-x-2 > * + * { margin-left: 0.5rem; }
         .space-x-3 > * + * { margin-left: 0.75rem; }
         .space-x-4 > * + * { margin-left: 1rem; }
@@ -56,12 +52,11 @@
         .text-amber-600 { color: #d97706; }
         .font-bold { font-weight: 700; }
         .font-semibold { font-weight: 600; }
-        .font-medium { font-weight: 500; }
-        .text-xs { font-size: 0.75rem; line-height: 1rem; }
-        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-        .text-base { font-size: 1rem; line-height: 1.5rem; }
-        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-        .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-base { font-size: 1rem; }
+        .text-lg { font-size: 1.125rem; }
+        .text-2xl { font-size: 1.5rem; }
         .rounded-xl { border-radius: 0.75rem; }
         .rounded-2xl { border-radius: 1rem; }
         .rounded-full { border-radius: 9999px; }
@@ -69,16 +64,13 @@
         .border-slate-200 { border-color: #e2e8f0; }
         .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
         .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
         .sticky { position: sticky; }
         .top-0 { top: 0; }
         .z-10 { z-index: 10; }
-        .z-50 { z-index: 50; }
+        .hidden { display: none !important; }
         .flex-grow { flex-grow: 1; }
         .gap-4 { gap: 1rem; }
         .gap-6 { gap: 1.5rem; }
-        .hidden { display: none; }
-        .transition { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
         
         @media print {
             body { background: white !important; }
@@ -98,7 +90,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
-                    <p class="text-xs text-slate-500">內嵌樣式防護版（支援 iPad 完整呈現）</p>
+                    <p class="text-xs text-slate-500">雲端資料防護版</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -114,21 +106,20 @@
     </header>
 
     <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
         <!-- 左側 -->
         <div class="lg:col-span-1 space-y-6 no-print">
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                 <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-4 flex items-center">
-                    <span class="bg-indigo-100 text-indigo-600 w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 font-bold" style="display:inline-flex; width:24px; height:24px; align-items:center; justify-content:center; border-radius:9999px; background:#e0e7ff; color:#4f46e5;">1</span> 
+                    <span style="display:inline-flex; width:24px; height:24px; align-items:center; justify-content:center; border-radius:9999px; background:#e0e7ff; color:#4f46e5; margin-right:0.5rem; font-size:12px; font-weight:bold;">1</span> 
                     步驟一：發送/記錄通知時間
                 </h2>
                 <div class="space-y-4">
                     <div>
-                        <label for="person-name" class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">人員 / 訪客名稱</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">人員 / 訪客名稱</label>
                         <input type="text" id="person-name" placeholder="例如：mer-66" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
                     </div>
                     <div>
-                        <label for="note-text" class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">備註說明 / 代號 (選填)</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">備註說明 / 代號 (選填)</label>
                         <input type="text" id="note-text" placeholder="例如：3103" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
                     </div>
                     <button id="notify-btn" style="width:100%; background:linear-gradient(to right, #4f46e5, #7c3aed); color:white; font-weight:bold; padding:0.875rem; border-radius:0.75rem; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; gap:0.5rem;">
@@ -156,15 +147,15 @@
         <div class="lg:col-span-2 space-y-6 w-full">
             <div class="grid grid-cols-3 gap-4 no-print">
                 <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm" style="text-align:center;">
-                    <span class="text-xs font-medium text-slate-400 block mb-1" style="display:block; margin-bottom:0.25rem;">完成打卡總數</span>
+                    <span class="text-xs font-medium text-slate-400 block mb-1">完成打卡總數</span>
                     <span id="stat-total" class="text-2xl font-bold text-slate-800">0</span>
                 </div>
                 <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm" style="text-align:center;">
-                    <span class="text-xs font-medium text-slate-400 block mb-1" style="display:block; margin-bottom:0.25rem;">平均等候時間</span>
+                    <span class="text-xs font-medium text-slate-400 block mb-1">平均等候時間</span>
                     <span id="stat-avg-time" class="text-2xl font-bold text-indigo-600">0 分鐘</span>
                 </div>
                 <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm" style="text-align:center;">
-                    <span class="text-xs font-medium text-slate-400 block mb-1" style="display:block; margin-bottom:0.25rem;">最長等候時間</span>
+                    <span class="text-xs font-medium text-slate-400 block mb-1">最長等候時間</span>
                     <span id="stat-max-time" class="text-2xl font-bold text-amber-600">0 分鐘</span>
                 </div>
             </div>
@@ -187,20 +178,15 @@
                         <button id="print-pdf-btn" style="background:#1e293b; color:white; font-size:0.75rem; font-weight:500; padding:0.5rem 0.75rem; border-radius:0.75rem; display:flex; align-items:center;">
                             <i class="fa-solid fa-print mr-1.5"></i> 列印 / PDF
                         </button>
-                        <button id="clear-history" style="font-size:0.75rem; color:#f43f5e; font-weight:500; padding:0.25rem 0.5rem;" title="僅清空前端畫面">
+                        <button id="clear-history" style="font-size:0.75rem; color:#f43f5e; font-weight:500; padding:0.25rem 0.5rem;">
                             <i class="fa-solid fa-trash-can mr-1"></i> 清空畫面
                         </button>
                     </div>
                 </div>
 
-                <div class="print-only mb-4">
-                    <h2 class="text-xl font-bold">人員抵達與等候時間打卡統計報表</h2>
-                    <p class="text-xs text-slate-500" id="print-date-label">列印日期：2026-00-00</p>
-                </div>
-
-                <div id="records-container" class="overflow-y-auto flex-grow space-y-3" style="overflow-y:auto; flex-grow:1;">
+                <div id="records-container" class="overflow-y-auto flex-grow space-y-3">
                     <div id="empty-state" style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#94a3b8; padding:3rem 0;">
-                        <i class="fa-solid fa-clipboard-list text-4xl mb-3" style="font-size:2.5rem; margin-bottom:0.75rem; color:#cbd5e1;"></i>
+                        <i class="fa-solid fa-clipboard-list" style="font-size:2.5rem; margin-bottom:0.75rem; color:#cbd5e1;"></i>
                         <p class="text-base">尚無完成抵達的打卡紀錄</p>
                     </div>
                 </div>
@@ -208,19 +194,15 @@
         </div>
     </main>
 
-    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 no-print" style="border-top:1px solid #e2e8f0; padding:1rem 0; text-align:center; font-size:0.75rem; color:#94a3b8;">
-        <p>人員抵達與等候時間打卡系統 &copy; 2026 - 雲端資料保留防護版</p>
-    </footer>
-
-    <!-- 設定 Modal -->
-    <div id="config-modal" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center;" class="hidden opacity-0 transition-opacity duration-300 no-print">
-        <div style="background:white; border-radius:1rem; padding:1.5rem; max-width:28rem; width:100%; margin:0 1rem; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);" id="config-modal-content">
+    <!-- 設定 Modal (預設隱藏) -->
+    <div id="config-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:1rem; padding:1.5rem; max-width:28rem; width:100%; margin:0 1rem; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
             <h3 style="font-weight:700; font-size:1.125rem; color:#0f172a; margin-bottom:0.25rem; display:flex; align-items:center;">
-                <i class="fa-solid fa-cloud text-indigo-600 mr-2" style="color:#4f46e5; margin-right:0.5rem;"></i> Google 雲端連動設定
+                <i class="fa-solid fa-cloud text-indigo-600" style="color:#4f46e5; margin-right:0.5rem;"></i> Google 雲端連動設定
             </h3>
             <p style="font-size:0.75rem; color:#94a3b8; margin-bottom:1rem;">請輸入您的 Google Apps Script 網址 (Web App URL)。</p>
             <div style="margin-bottom:1.25rem;">
-                <label style="display:block; font-size:0.75rem; font-weight:500; color:#64748b; margin-bottom:0.25rem;">Apps Script 網址 (Web App URL)</label>
+                <label style="display:block; font-size:0.75rem; font-weight:500; color:#64748b; margin-bottom:0.25rem;">Apps Script 網址</label>
                 <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:0.75rem; font-family:monospace;">
             </div>
             <div style="display:flex; gap:0.5rem;">
@@ -230,9 +212,9 @@
         </div>
     </div>
 
-    <!-- 訊息 Modal -->
-    <div id="custom-modal" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center;" class="hidden opacity-0 transition-opacity duration-300 no-print">
-        <div style="background:white; border-radius:1rem; padding:1.5rem; max-width:24rem; width:100%; margin:0 1rem; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);" id="modal-content">
+    <!-- 訊息 Modal (預設隱藏) -->
+    <div id="custom-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:1rem; padding:1.5rem; max-width:24rem; width:100%; margin:0 1rem; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
             <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
                 <div id="modal-icon-container" style="width:2.5rem; height:2.5rem; border-radius:9999px; display:flex; align-items:center; justify-content:center; background:#e0e7ff; color:#4f46e5;">
                     <i id="modal-icon" class="fa-solid fa-info"></i>
@@ -264,10 +246,8 @@
         const syncCloudBtn = document.getElementById('sync-cloud-btn');
         const exportCsvBtn = document.getElementById('export-csv-btn');
         const printPdfBtn = document.getElementById('print-pdf-btn');
-        const printDateLabel = document.getElementById('print-date-label');
         const syncStatus = document.getElementById('sync-status');
         const configModal = document.getElementById('config-modal');
-        const configModalContent = document.getElementById('config-modal-content');
         const scriptUrlInput = document.getElementById('script-url-input');
         const configCancelBtn = document.getElementById('config-cancel-btn');
         const configSaveBtn = document.getElementById('config-save-btn');
@@ -275,7 +255,6 @@
         const modalMessage = document.getElementById('modal-message');
         const modalTitle = document.getElementById('modal-title');
         const modalCloseBtn = document.getElementById('modal-close-btn');
-        const modalContent = document.getElementById('modal-content');
         const modalIconContainer = document.getElementById('modal-icon-container');
         const modalIcon = document.getElementById('modal-icon');
 
@@ -289,9 +268,7 @@
             const str = String(timeStr);
             if (str.includes('T')) {
                 const parts = str.split('T');
-                if (parts[1]) {
-                    return parts[1].split('.')[0];
-                }
+                if (parts[1]) return parts[1].split('.')[0];
             }
             return str;
         }
@@ -300,8 +277,9 @@
             updateClock();
             setInterval(updateClock, 1000);
             loadLocalData();
-            const now = new Date();
-            printDateLabel.textContent = `列印日期：${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+            // 強制確保一開始所有彈出視窗是關閉的
+            configModal.classList.add('hidden');
+            customModal.classList.add('hidden');
             if (scriptUrl) {
                 syncStatus.textContent = '已連結雲端';
                 syncStatus.style.background = '#d1fae5';
@@ -323,32 +301,28 @@
             modalIconContainer.style.color = type === 'success' ? '#059669' : type === 'warning' ? '#d97706' : '#4f46e5';
             modalIcon.className = type === 'success' ? "fa-solid fa-check" : type === 'warning' ? "fa-solid fa-triangle-exclamation" : "fa-solid fa-info";
             customModal.classList.remove('hidden');
-            setTimeout(() => {
-                customModal.classList.remove('opacity-0');
-            }, 10);
         }
 
         function hideModal() {
-            customModal.classList.add('opacity-0');
-            setTimeout(() => { customModal.classList.add('hidden'); }, 300);
+            customModal.classList.add('hidden');
         }
 
-        modalCloseBtn.addEventListener('click', hideModal);
+        modalCloseBtn.onclick = hideModal;
+        customModal.onclick = (e) => { if (e.target === customModal) hideModal(); };
 
-        openConfigBtn.addEventListener('click', () => {
+        openConfigBtn.onclick = () => {
             scriptUrlInput.value = scriptUrl;
             configModal.classList.remove('hidden');
-            setTimeout(() => { configModal.classList.remove('opacity-0'); }, 10);
-        });
+        };
 
         function closeConfigModal() {
-            configModal.classList.add('opacity-0');
-            setTimeout(() => { configModal.classList.add('hidden'); }, 300);
+            configModal.classList.add('hidden');
         }
 
-        configCancelBtn.addEventListener('click', closeConfigModal);
+        configCancelBtn.onclick = closeConfigModal;
+        configModal.onclick = (e) => { if (e.target === configModal) closeConfigModal(); };
 
-        configSaveBtn.addEventListener('click', () => {
+        configSaveBtn.onclick = () => {
             scriptUrl = scriptUrlInput.value.trim();
             localStorage.setItem('gas_script_url', scriptUrl);
             closeConfigModal();
@@ -363,9 +337,9 @@
                 syncStatus.style.background = '#f1f5f9';
                 syncStatus.style.color = '#64748b';
             }
-        });
+        };
 
-        notifyBtn.addEventListener('click', () => {
+        notifyBtn.onclick = () => {
             const personName = personNameInput.value.trim();
             if (!personName) {
                 showModal('欄位未填寫', '請先輸入人員或訪客名稱！', 'warning');
@@ -379,7 +353,6 @@
                 notifyTime: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`,
                 notifyTimestamp: now.getTime(),
                 note: noteTextInput.value.trim() || '',
-                dateStr: now.toLocaleDateString(),
                 _status: 'PENDING'
             };
 
@@ -390,7 +363,7 @@
 
             personNameInput.value = '';
             noteTextInput.value = '';
-        });
+        };
 
         window.confirmArrival = function(id) {
             const index = pendingList.findIndex(item => item.id === id);
@@ -428,11 +401,8 @@
                 rec.cardNumber = newCardVal.trim();
                 rec._status = 'COMPLETED';
                 saveLocalData();
-                
                 clearTimeout(saveTimeouts[id]);
-                saveTimeouts[id] = setTimeout(() => {
-                    upsertSingleItemToCloud(rec);
-                }, 800);
+                saveTimeouts[id] = setTimeout(() => { upsertSingleItemToCloud(rec); }, 800);
             }
         };
 
@@ -448,82 +418,63 @@
             renderCompletedRecords();
         };
 
-        clearHistoryBtn.addEventListener('click', () => {
+        clearHistoryBtn.onclick = () => {
             if (completedRecords.length === 0) return;
-            if (confirm('確定要清空前端畫面上的已完成紀錄嗎？\n(提示：這只會清除畫面，雲端 Google 試算表的歷史紀錄將會完整保留不被刪除)')) {
+            if (confirm('確定要清空前端畫面上的已完成紀錄嗎？\n(雲端試算表的歷史紀錄將會完整保留)')) {
                 completedRecords = [];
                 saveLocalData();
                 renderCompletedRecords();
                 showModal('已清空畫面', '前端畫面已清空，雲端歷史資料已安全保留。', 'info');
             }
-        });
+        };
 
         async function upsertSingleItemToCloud(item) {
             if (!scriptUrl) return;
             syncStatus.textContent = '同步中...';
             try {
-                const response = await fetch(scriptUrl, {
+                await fetch(scriptUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'upsert', data: item })
                 });
-                if (response.ok) {
-                    syncStatus.textContent = '已同步雲端';
-                    syncStatus.style.background = '#d1fae5';
-                    syncStatus.style.color = '#047857';
-                }
+                syncStatus.textContent = '已同步雲端';
+                syncStatus.style.background = '#d1fae5';
+                syncStatus.style.color = '#047857';
             } catch (err) {
-                console.error('Upsert error:', err);
                 syncStatus.textContent = '同步失敗';
-                syncStatus.style.background = '#ffe4e6';
-                syncStatus.style.color = '#be123c';
             }
         }
 
         async function fetchFromCloud() {
             if (!scriptUrl) return;
-            syncStatus.textContent = '載入中...';
             try {
                 const response = await fetch(scriptUrl, { method: 'GET', redirect: 'follow' });
                 const data = await response.json();
-                
                 if (data) {
                     if (Array.isArray(data.completed)) {
                         const localMap = new Map(completedRecords.map(r => [r.id, r]));
                         data.completed.forEach(cloudRec => {
-                            if (!localMap.has(cloudRec.id)) {
-                                completedRecords.push(cloudRec);
-                            }
+                            if (!localMap.has(cloudRec.id)) completedRecords.push(cloudRec);
                         });
                         completedRecords.sort((a, b) => b.id - a.id);
                     }
-                    if (Array.isArray(data.pending)) {
-                        pendingList = data.pending;
-                    }
+                    if (Array.isArray(data.pending)) pendingList = data.pending;
                     saveLocalData();
                     renderPendingList();
                     renderCompletedRecords();
-                    syncStatus.textContent = '已從雲端載入';
-                    syncStatus.style.background = '#d1fae5';
-                    syncStatus.style.color = '#047857';
                 }
-            } catch (err) {
-                console.error('Fetch cloud error:', err);
-                syncStatus.textContent = '載入失敗';
-                syncStatus.style.background = '#fef3c7';
-                syncStatus.style.color = '#b45309';
-            }
+            } catch (err) { console.error(err); }
         }
 
-        syncCloudBtn.addEventListener('click', () => {
-            if (!scriptUrl) { openConfigBtn.click(); return; }
+        syncCloudBtn.onclick = () => {
+            if (!scriptUrl) { openConfigBtn.onclick(); return; }
             fetchFromCloud();
             showModal('重新載入', '已從雲端 Google 試算表同步最新紀錄。', 'success');
-        });
+        };
 
-        exportCsvBtn.addEventListener('click', () => {
+        exportCsvBtn.onclick = () => {
             if (completedRecords.length === 0) {
-                showModal('無法匯出', '目前沒有任何已完成的打卡紀錄可供匯出。', 'warning');
+                showModal('無法匯出', '目前沒有任何已完成的打卡紀錄。', 'warning');
                 return;
             }
             let csvContent = '\uFEFF項次,人員名稱,接藥人卡號,通知時間,抵達時間,等候時間(分鐘),備註說明,完成時間\n';
@@ -534,20 +485,11 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `人員等候時間打卡統計_${new Date().toISOString().slice(0, 10)}.csv`;
-            document.body.appendChild(a);
+            a.download = `打卡統計_${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        });
+        };
 
-        printPdfBtn.addEventListener('click', () => {
-            if (completedRecords.length === 0) {
-                showModal('無法列印', '目前沒有任何已完成的打卡紀錄可供列印。', 'warning');
-                return;
-            }
-            window.print();
-        });
+        printPdfBtn.onclick = () => { window.print(); };
 
         function saveLocalData() {
             localStorage.setItem('two_step_pending', JSON.stringify(pendingList));
@@ -556,13 +498,11 @@
 
         function loadLocalData() {
             try {
-                const localPending = localStorage.getItem('two_step_pending');
-                const localCompleted = localStorage.getItem('two_step_completed');
-                if (localPending) pendingList = JSON.parse(localPending);
-                if (localCompleted) completedRecords = JSON.parse(localCompleted);
-            } catch (e) {
-                console.error('Local storage load error:', e);
-            }
+                const lp = localStorage.getItem('two_step_pending');
+                const lc = localStorage.getItem('two_step_completed');
+                if (lp) pendingList = JSON.parse(lp);
+                if (lc) completedRecords = JSON.parse(lc);
+            } catch (e) { console.error(e); }
             renderPendingList();
             renderCompletedRecords();
         }
@@ -584,10 +524,10 @@
                     </div>
                     ${item.note ? `<div style="font-size:0.75rem; color:#475569; font-style:italic;">備註：${escapeHtml(item.note)}</div>` : ''}
                     <div style="display:flex; align-items:center; gap:0.5rem; padding-top:0.25rem;">
-                        <button onclick="confirmArrival(${item.id})" style="flex-grow:1; background:#059669; color:white; font-size:0.875rem; font-weight:bold; padding:0.625rem 0.75rem; border-radius:0.75rem; box-shadow:0 1px 2px 0 rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; gap:0.375rem;">
-                            <i class="fa-solid fa-check-circle" style="font-size:1rem;"></i><span>人員已抵達 (打卡計時)</span>
+                        <button onclick="confirmArrival(${item.id})" style="flex-grow:1; background:#059669; color:white; font-size:0.875rem; font-weight:bold; padding:0.625rem 0.75rem; border-radius:0.75rem; display:flex; align-items:center; justify-content:center; gap:0.375rem;">
+                            <i class="fa-solid fa-check-circle"></i><span>人員已抵達 (打卡計時)</span>
                         </button>
-                        <button onclick="removePending(${item.id})" style="color:#94a3b8; padding:0.5rem; font-size:0.875rem;"><i class="fa-solid fa-xmark" style="font-size:1rem;"></i></button>
+                        <button onclick="removePending(${item.id})" style="color:#94a3b8; padding:0.5rem;"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
                 pendingContainer.appendChild(card);
@@ -631,7 +571,7 @@
                     </div>
                     <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #e2e8f0; padding-top:0.5rem;">
                         <span style="font-size:11px; color:#94a3b8; font-family:monospace;">${rec.completedAt}</span>
-                        <button onclick="deleteRecord(${rec.id})" style="color:#94a3b8; padding:0.25rem;" class="no-print"><i class="fa-solid fa-trash" style="font-size:0.875rem;"></i></button>
+                        <button onclick="deleteRecord(${rec.id})" style="color:#94a3b8; padding:0.25rem;"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 `;
                 recordsContainer.appendChild(card);
