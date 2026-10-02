@@ -317,12 +317,20 @@
         }
 
         function formatTimeDisplay(timeStr) {
-            if (!timeStr) return '';
-            const str = String(timeStr);
-            if (str.includes('T')) {
-                const parts = str.split('T');
-                if (parts[1]) return parts[1].split('.')[0];
-            }
+    if (!timeStr) return '';
+    const str = String(timeStr);
+    
+    // 如果雲端傳回來的是完整的 ISO 日期時間格式 (含 T)
+    if (str.includes('T')) {
+        const dateObj = new Date(str);
+        const utc = dateObj.getTime() + (dateObj.getTimezoneOffset() * 60000);
+        const taiwanDate = new Date(utc + (3600000 * 8));
+        return `${String(taiwanDate.getHours()).padStart(2, '0')}:${String(taiwanDate.getMinutes()).padStart(2, '0')}:${String(taiwanDate.getSeconds()).padStart(2, '0')}`;
+    }
+    
+    // 如果本來就是 "HH:mm:ss" 的字串，直接回傳
+    return str.split('.')[0];
+}
             return str;
         }
 
