@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人員抵達與等候時間打卡系統（修復版）</title>
+    <title>雙階段抵達與等候打卡系統（完整音效版）</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e2e8f0; }
@@ -90,7 +90,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
-                    <p class="text-xs text-slate-500">雲端資料防護版</p>
+                    <p class="text-xs text-slate-500">完整音效版</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -194,7 +194,7 @@
         </div>
     </main>
 
-    <!-- 設定 Modal (預設隱藏) -->
+    <!-- 設定 Modal -->
     <div id="config-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center;">
         <div style="background:white; border-radius:1rem; padding:1.5rem; max-width:28rem; width:100%; margin:0 1rem; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
             <h3 style="font-weight:700; font-size:1.125rem; color:#0f172a; margin-bottom:0.25rem; display:flex; align-items:center;">
@@ -212,7 +212,7 @@
         </div>
     </div>
 
-    <!-- 訊息 Modal (預設隱藏) -->
+    <!-- 訊息 Modal -->
     <div id="custom-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center;">
         <div style="background:white; border-radius:1rem; padding:1.5rem; max-width:24rem; width:100%; margin:0 1rem; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
             <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
@@ -262,6 +262,44 @@
         let completedRecords = []; 
         let scriptUrl = localStorage.getItem('gas_script_url') || '';
         let saveTimeouts = {};
+        let audioCtx = null;
+
+        // 內建合成音效函式 (不需要額外音檔)
+        function playBeep(type = 'success') {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'success') {
+                    // 輕脆的高音 (打卡成功 / 抵達)
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08); 
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                } else {
+                    // 提示音 (加入待抵達)
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime); 
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                }
+            } catch (e) {
+                console.log('Audio not allowed yet', e);
+            }
+        }
 
         function formatTimeDisplay(timeStr) {
             if (!timeStr) return '';
@@ -277,7 +315,6 @@
             updateClock();
             setInterval(updateClock, 1000);
             loadLocalData();
-            // 強制確保一開始所有彈出視窗是關閉的
             configModal.classList.add('hidden');
             customModal.classList.add('hidden');
             if (scriptUrl) {
@@ -346,6 +383,8 @@
                 return;
             }
 
+            playBeep('notify'); // 播放加入通知音效
+
             const now = new Date();
             const newItem = {
                 id: Date.now(),
@@ -368,6 +407,8 @@
         window.confirmArrival = function(id) {
             const index = pendingList.findIndex(item => item.id === id);
             if (index === -1) return;
+
+            playBeep('success'); // 播放打卡完成音效
 
             const item = pendingList[index];
             const now = new Date();
