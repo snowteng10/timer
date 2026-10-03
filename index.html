@@ -66,18 +66,11 @@
         .flex-grow { flex-grow: 1; }
         .gap-4 { gap: 1rem; }
         .gap-6 { gap: 1.5rem; }
-        
-        @media print {
-            body { background: white !important; }
-            header, .no-print { display: none !important; }
-            .print-only { display: block !important; }
-        }
-        .print-only { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm no-print">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
         <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md">
@@ -89,9 +82,6 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <button id="open-config-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-xl transition flex items-center">
-                    <i class="fa-solid fa-cloud-arrow-up mr-1.5 text-indigo-600"></i> 雲端設定
-                </button>
                 <div style="text-align: right;">
                     <div id="live-clock" class="text-lg font-bold text-indigo-600 font-mono">00:00:00</div>
                     <div id="live-date" class="text-xs text-slate-400">YYYY-MM-DD</div>
@@ -102,7 +92,7 @@
 
     <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- 左側 -->
-        <div class="lg:col-span-1 space-y-6 no-print">
+        <div class="lg:col-span-1 space-y-6">
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                 <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-4 flex items-center">
                     <span style="display:inline-flex; width:24px; height:24px; align-items:center; justify-content:center; border-radius:9999px; background:#e0e7ff; color:#4f46e5; margin-right:0.5rem; font-size:12px; font-weight:bold;">1</span> 
@@ -140,7 +130,7 @@
 
         <!-- 右側 -->
         <div class="lg:col-span-2 space-y-6 w-full">
-            <div class="grid grid-cols-3 gap-4 no-print">
+            <div class="grid grid-cols-3 gap-4">
                 <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm" style="text-align:center;">
                     <span class="text-xs font-medium text-slate-400 block mb-1">完成打卡總數</span>
                     <span id="stat-total" class="text-2xl font-bold text-slate-800">0</span>
@@ -163,16 +153,7 @@
                         </h2>
                         <span id="sync-status" style="font-size:10px; background:#f1f5f9; color:#64748b; padding:0.125rem 0.5rem; border-radius:9999px;">未同步雲端</span>
                     </div>
-                    <div class="flex items-center space-x-2 no-print">
-                        <button id="sync-cloud-btn" style="background:#4f46e5; color:white; font-size:0.75rem; font-weight:500; padding:0.5rem 0.75rem; border-radius:0.75rem; display:flex; align-items:center;">
-                            <i class="fa-solid fa-cloud-arrow-down mr-1.5"></i> 重新載入
-                        </button>
-                        <button id="export-csv-btn" style="background:#059669; color:white; font-size:0.75rem; font-weight:500; padding:0.5rem 0.75rem; border-radius:0.75rem; display:flex; align-items:center;">
-                            <i class="fa-solid fa-file-csv mr-1.5"></i> 匯出 CSV
-                        </button>
-                        <button id="print-pdf-btn" style="background:#1e293b; color:white; font-size:0.75rem; font-weight:500; padding:0.5rem 0.75rem; border-radius:0.75rem; display:flex; align-items:center;">
-                            <i class="fa-solid fa-print mr-1.5"></i> 列印 / PDF
-                        </button>
+                    <div class="flex items-center space-x-2">
                         <button id="clear-history" style="font-size:0.75rem; color:#f43f5e; font-weight:500; padding:0.25rem 0.5rem;">
                             <i class="fa-solid fa-trash-can mr-1"></i> 清空畫面
                         </button>
@@ -188,24 +169,6 @@
             </div>
         </div>
     </main>
-
-    <!-- 設定 Modal -->
-    <div id="config-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center;">
-        <div style="background:white; border-radius:1rem; padding:1.5rem; max-width:28rem; width:100%; margin:0 1rem; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
-            <h3 style="font-weight:700; font-size:1.125rem; color:#0f172a; margin-bottom:0.25rem; display:flex; align-items:center;">
-                <i class="fa-solid fa-cloud text-indigo-600" style="color:#4f46e5; margin-right:0.5rem;"></i> Google 雲端連動設定
-            </h3>
-            <p style="font-size:0.75rem; color:#94a3b8; margin-bottom:1rem;">請輸入您的 Google Apps Script 網址 (Web App URL)。</p>
-            <div style="margin-bottom:1.25rem;">
-                <label style="display:block; font-size:0.75rem; font-weight:500; color:#64748b; margin-bottom:0.25rem;">Apps Script 網址</label>
-                <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:0.75rem; font-family:monospace;">
-            </div>
-            <div style="display:flex; gap:0.5rem;">
-                <button id="config-cancel-btn" style="flex:1; background:#f1f5f9; color:#334155; padding:0.625rem; border-radius:0.75rem; font-size:0.875rem; font-weight:500;">取消</button>
-                <button id="config-save-btn" style="flex:1; background:#4f46e5; color:white; padding:0.625rem; border-radius:0.75rem; font-size:0.875rem; font-weight:500;">儲存並載入</button>
-            </div>
-        </div>
-    </div>
 
     <!-- 訊息 Modal -->
     <div id="custom-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center;">
@@ -224,6 +187,9 @@
     </div>
 
     <script>
+        // === 在這裡直接填入您的 Google Apps Script 網址 ===
+        let scriptUrl = "https://script.google.com/macros/s/AKfycbxD6SlfJKFgXrvZTifjReDEwysDER0M_oiZQeBh62blHJve0NrgQNT69QDFcKW_DjEjbg/exec";
+
         const liveClockEl = document.getElementById('live-clock');
         const liveDateEl = document.getElementById('live-date');
         const personNameInput = document.getElementById('person-name');
@@ -237,15 +203,7 @@
         const statTotal = document.getElementById('stat-total');
         const statAvgTime = document.getElementById('stat-avg-time');
         const statMaxTime = document.getElementById('stat-max-time');
-        const openConfigBtn = document.getElementById('open-config-btn');
-        const syncCloudBtn = document.getElementById('sync-cloud-btn');
-        const exportCsvBtn = document.getElementById('export-csv-btn');
-        const printPdfBtn = document.getElementById('print-pdf-btn');
         const syncStatus = document.getElementById('sync-status');
-        const configModal = document.getElementById('config-modal');
-        const scriptUrlInput = document.getElementById('script-url-input');
-        const configCancelBtn = document.getElementById('config-cancel-btn');
-        const configSaveBtn = document.getElementById('config-save-btn');
         const customModal = document.getElementById('custom-modal');
         const modalMessage = document.getElementById('modal-message');
         const modalTitle = document.getElementById('modal-title');
@@ -255,7 +213,6 @@
 
         let pendingList = []; 
         let completedRecords = []; 
-        let scriptUrl = localStorage.getItem('gas_script_url') || '';
         let saveTimeouts = {};
         let audioCtx = null;
 
@@ -310,6 +267,11 @@
             return new Date(utc + (3600000 * 8));
         }
 
+        function getTaiwanDateString() {
+            const now = getTaiwanDate();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        }
+
         function formatTimeDisplay(timeStr) {
             if (!timeStr) return '';
             const str = String(timeStr);
@@ -326,20 +288,40 @@
             updateClock();
             setInterval(updateClock, 1000);
             loadLocalData();
-            configModal.classList.add('hidden');
+            checkNewDayReset(); // 檢查是否跨日，若是則自動清除畫面紀錄
             customModal.classList.add('hidden');
-            if (scriptUrl) {
+            if (scriptUrl && scriptUrl.indexOf("script.google.com") !== -1) {
                 syncStatus.textContent = '已連結雲端';
                 syncStatus.style.background = '#d1fae5';
                 syncStatus.style.color = '#047857';
-                fetchFromCloud();
+                // 隔日換新的一天時，不自動從雲端把舊資料載回來洗版面，只保留當日記錄
+            } else {
+                syncStatus.textContent = '未設定雲端網址';
+                syncStatus.style.background = '#ffeeee';
+                syncStatus.style.color = '#c92a2a';
             }
         }
 
         function updateClock() {
             const now = getTaiwanDate();
             liveClockEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-            liveDateEl.textContent = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            liveDateEl.textContent = getTaiwanDateString();
+        }
+
+        function checkNewDayReset() {
+            const todayStr = getTaiwanDateString();
+            const lastSavedDate = localStorage.getItem('two_step_date') || '';
+            
+            if (lastSavedDate && lastSavedDate !== todayStr) {
+                // 如果日期不同（代表隔天了），清空本地前端畫面顯示紀錄
+                pendingList = [];
+                completedRecords = [];
+                saveLocalData();
+                renderPendingList();
+                renderCompletedRecords();
+            }
+            // 更新儲存日期為今天
+            localStorage.setItem('two_step_date', todayStr);
         }
 
         function showModal(title, message, type = 'info') {
@@ -357,35 +339,6 @@
 
         modalCloseBtn.onclick = hideModal;
         customModal.onclick = (e) => { if (e.target === customModal) hideModal(); };
-
-        openConfigBtn.onclick = () => {
-            scriptUrlInput.value = scriptUrl;
-            configModal.classList.remove('hidden');
-        };
-
-        function closeConfigModal() {
-            configModal.classList.add('hidden');
-        }
-
-        configCancelBtn.onclick = closeConfigModal;
-        configModal.onclick = (e) => { if (e.target === configModal) closeConfigModal(); };
-
-        configSaveBtn.onclick = () => {
-            scriptUrl = scriptUrlInput.value.trim();
-            localStorage.setItem('gas_script_url', scriptUrl);
-            closeConfigModal();
-            if (scriptUrl) {
-                syncStatus.textContent = '已連結雲端';
-                syncStatus.style.background = '#d1fae5';
-                syncStatus.style.color = '#047857';
-                showModal('設定成功', '雲端網址已儲存，正在從雲端載入歷史資料...', 'success');
-                fetchFromCloud();
-            } else {
-                syncStatus.textContent = '未同步雲端';
-                syncStatus.style.background = '#f1f5f9';
-                syncStatus.style.color = '#64748b';
-            }
-        };
 
         notifyBtn.onclick = () => {
             const personName = personNameInput.value.trim();
@@ -481,7 +434,7 @@
         };
 
         async function upsertSingleItemToCloud(item) {
-            if (!scriptUrl) return;
+            if (!scriptUrl || scriptUrl.indexOf("script.google.com") === -1) return;
             syncStatus.textContent = '同步中...';
             try {
                 await fetch(scriptUrl, {
@@ -489,7 +442,7 @@
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'upsert', data: item })
                 });
-                syncStatus.textContent = '已同步雲端';
+                syncStatus.textContent = '已連結雲端';
                 syncStatus.style.background = '#d1fae5';
                 syncStatus.style.color = '#047857';
             } catch (err) {
@@ -497,55 +450,10 @@
             }
         }
 
-        async function fetchFromCloud() {
-            if (!scriptUrl) return;
-            try {
-                const response = await fetch(scriptUrl, { method: 'GET', redirect: 'follow' });
-                const data = await response.json();
-                if (data) {
-                    if (Array.isArray(data.completed)) {
-                        const localMap = new Map(completedRecords.map(r => [r.id, r]));
-                        data.completed.forEach(cloudRec => {
-                            if (!localMap.has(cloudRec.id)) completedRecords.push(cloudRec);
-                        });
-                        completedRecords.sort((a, b) => b.id - a.id);
-                    }
-                    if (Array.isArray(data.pending)) pendingList = data.pending;
-                    saveLocalData();
-                    renderPendingList();
-                    renderCompletedRecords();
-                }
-            } catch (err) { console.error(err); }
-        }
-
-        syncCloudBtn.onclick = () => {
-            if (!scriptUrl) { openConfigBtn.onclick(); return; }
-            fetchFromCloud();
-            showModal('重新載入', '已從雲端 Google 試算表同步最新紀錄。', 'success');
-        };
-
-        exportCsvBtn.onclick = () => {
-            if (completedRecords.length === 0) {
-                showModal('無法匯出', '目前沒有任何已完成的打卡紀錄。', 'warning');
-                return;
-            }
-            let csvContent = '\uFEFF項次,人員名稱,接藥人卡號,通知時間,抵達時間,等候時間(分鐘),備註說明,完成時間\n';
-            completedRecords.forEach((rec, index) => {
-                csvContent += `${index + 1},"${rec.name}","${rec.cardNumber || ''}",${formatTimeDisplay(rec.notifyTime)},${formatTimeDisplay(rec.arrivalTime)},${rec.waitingMinutes},"${rec.note || ''}","${rec.completedAt}"\n`;
-            });
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `打卡統計_${new Date().toISOString().slice(0, 10)}.csv`;
-            a.click();
-        };
-
-        printPdfBtn.onclick = () => { window.print(); };
-
         function saveLocalData() {
             localStorage.setItem('two_step_pending', JSON.stringify(pendingList));
             localStorage.setItem('two_step_completed', JSON.stringify(completedRecords));
+            localStorage.setItem('two_step_date', getTaiwanDateString());
         }
 
         function loadLocalData() {
@@ -617,7 +525,7 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:0.75rem;">
                             <span style="font-size:0.875rem; font-weight:bold; color:#4f46e5;"><i class="fa-regular fa-clock mr-1"></i>${waitMin} 分鐘</span>
-                            <button onclick="deleteRecord(${rec.id})" class="no-print" style="color:#94a3b8; font-size:0.75rem;"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="deleteRecord(${rec.id})" style="color:#94a3b8; font-size:0.75rem;"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                     <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; font-size:0.75rem; color:#64748b; padding-top:0.25rem; border-top:1px dashed #e2e8f0; gap:0.5rem;">
@@ -625,12 +533,9 @@
                             <span>通知：<strong style="color:#334155; font-family:monospace;">${formatTimeDisplay(rec.notifyTime)}</strong></span>
                             <span>抵達：<strong style="color:#059669; font-family:monospace;">${formatTimeDisplay(rec.arrivalTime)}</strong></span>
                         </div>
-                        <div class="no-print" style="display:flex; align-items:center; gap:0.375rem;">
+                        <div style="display:flex; align-items:center; gap:0.375rem;">
                             <span style="font-size:10px;">卡號：</span>
                             <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:white; border:1px solid #cbd5e1; border-radius:0.375rem; padding:0.125rem 0.375rem; font-size:0.75rem; width:80px;">
-                        </div>
-                        <div class="print-only">
-                            <span>卡號：${escapeHtml(rec.cardNumber || '無')}</span>
                         </div>
                     </div>
                 `;
