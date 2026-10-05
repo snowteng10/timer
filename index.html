@@ -78,7 +78,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">雙階段抵達與等候打卡系統</h1>
-                    <p class="text-xs text-slate-500">大音量自動解鎖版 (台灣時區已修正)</p>
+                    <p class="text-xs text-slate-500">大音量自動解鎖版 (跨日自動清除畫面)</p>
                 </div>
             </div>
             <div class="flex items-center space-x-3">
@@ -285,16 +285,15 @@
         }
 
         function initApp() {
+            loadLocalData(); // 載入資料並在內部進行跨日檢查與自動清除
             updateClock();
-            setInterval(updateClock, 1000);
-            loadLocalData();
-            checkNewDayReset(); // 檢查是否跨日，若是則自動清除畫面紀錄
+            setInterval(updateClock, 1000); // 每秒更新時鐘與定時跨日監控
+            
             customModal.classList.add('hidden');
             if (scriptUrl && scriptUrl.indexOf("script.google.com") !== -1) {
                 syncStatus.textContent = '已連結雲端';
                 syncStatus.style.background = '#d1fae5';
                 syncStatus.style.color = '#047857';
-                // 隔日換新的一天時，不自動從雲端把舊資料載回來洗版面，只保留當日記錄
             } else {
                 syncStatus.textContent = '未設定雲端網址';
                 syncStatus.style.background = '#ffeeee';
@@ -306,6 +305,9 @@
             const now = getTaiwanDate();
             liveClockEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
             liveDateEl.textContent = getTaiwanDateString();
+            
+            // 每秒鐘隨時比對日期，如果跨日就立刻清空畫面
+            checkNewDayReset();
         }
 
         function checkNewDayReset() {
@@ -313,15 +315,39 @@
             const lastSavedDate = localStorage.getItem('two_step_date') || '';
             
             if (lastSavedDate && lastSavedDate !== todayStr) {
-                // 如果日期不同（代表隔天了），清空本地前端畫面顯示紀錄
+                // 如果日期不同（代表跨天了），清空前端畫面顯示紀錄與暫存
                 pendingList = [];
                 completedRecords = [];
                 saveLocalData();
                 renderPendingList();
                 renderCompletedRecords();
             }
-            // 更新儲存日期為今天
             localStorage.setItem('two_step_date', todayStr);
+        }
+
+        function loadLocalData() {
+            try {
+                const todayStr = getTaiwanDateString();
+                const lastSavedDate = localStorage.getItem('two_step_date') || '';
+
+                // 如果重新整理時發現日期不同（代表隔天了），強制清空前端與暫存
+                if (lastSavedDate && lastSavedDate !== todayStr) {
+                    pendingList = [];
+                    completedRecords = [];
+                    localStorage.setItem('two_step_pending', JSON.stringify([]));
+                    localStorage.setItem('two_step_completed', JSON.stringify([]));
+                    localStorage.setItem('two_step_date', todayStr);
+                } else {
+                    const lp = localStorage.getItem('two_step_pending');
+                    const lc = localStorage.getItem('two_step_completed');
+                    if (lp) pendingList = JSON.parse(lp);
+                    if (lc) completedRecords = JSON.parse(lc);
+                }
+            } catch (e) { 
+                console.error(e); 
+            }
+            renderPendingList();
+            renderCompletedRecords();
         }
 
         function showModal(title, message, type = 'info') {
@@ -454,17 +480,6 @@
             localStorage.setItem('two_step_pending', JSON.stringify(pendingList));
             localStorage.setItem('two_step_completed', JSON.stringify(completedRecords));
             localStorage.setItem('two_step_date', getTaiwanDateString());
-        }
-
-        function loadLocalData() {
-            try {
-                const lp = localStorage.getItem('two_step_pending');
-                const lc = localStorage.getItem('two_step_completed');
-                if (lp) pendingList = JSON.parse(lp);
-                if (lc) completedRecords = JSON.parse(lc);
-            } catch (e) { console.error(e); }
-            renderPendingList();
-            renderCompletedRecords();
         }
 
         function renderPendingList() {
