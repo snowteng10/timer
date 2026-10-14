@@ -419,7 +419,7 @@
                 name: personName,
                 notifyTime: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`,
                 notifyTimestamp: now.getTime(),
-                note: radiographerCard, // 左上角輸入的放射師卡號保留在 note 中
+                note: radiographerCard, 
                 _status: 'PENDING'
             };
 
@@ -445,8 +445,8 @@
             const completedItem = {
                 id: item.id,
                 name: item.name,
-                radiographerCard: item.note || '', // 確保左上角放射師卡號被保留儲存
-                cardNumber: '',                      // 右側輸入框畫面初始保持空白
+                radiographerCard: item.note || '', 
+                cardNumber: '',                      
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
@@ -467,7 +467,7 @@
             const rec = completedRecords.find(r => r.id === id);
             if (rec) {
                 const trimmedVal = newCardVal.trim();
-                rec.cardNumber = trimmedVal; // 更新右側手動輸入的卡號
+                rec.cardNumber = trimmedVal; 
                 rec._status = 'COMPLETED';
                 saveLocalData();
                 clearTimeout(saveTimeouts[id]);
@@ -501,7 +501,6 @@
             if (!scriptUrl || scriptUrl.indexOf("script.google.com") === -1) return;
             syncStatus.textContent = '同步中...';
             try {
-                // 將左上角的放射師卡號與右側卡號完整對應傳給雲端（支援各種後端接收欄位名稱：note、radiographerCard、cardNumber）
                 const primaryCard = item.radiographerCard || item.note || '';
                 const payload = {
                     ...item,
@@ -593,9 +592,9 @@
                             <span>通知：<strong style="color:#334155; font-family:monospace;">${formatTimeDisplay(rec.notifyTime)}</strong></span>
                             <span>抵達：<strong style="color:#059669; font-family:monospace;">${formatTimeDisplay(rec.arrivalTime)}</strong></span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:0.375rem;">
-                            <span style="font-size:10px;">護理師卡號：</span>
-                            <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入護理師卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:white; border:1px solid #cbd5e1; border-radius:0.375rem; padding:0.125rem 0.375rem; font-size:0.75rem; width:80px;">
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span style="font-size:0.8125rem; font-weight:500; color:#334155;">護理師卡號：</span>
+                            <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:white; border:1px solid #cbd5e1; border-radius:0.5rem; padding:0.25rem 0.5rem; font-size:0.9375rem; font-weight:bold; width:110px;">
                         </div>
                     </div>
                 `;
