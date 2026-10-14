@@ -445,7 +445,7 @@
             const completedItem = {
                 id: item.id,
                 name: item.name,
-                cardNumber: '', // 修改此處使右側卡號欄位預設空白
+                cardNumber: '', // 右側卡號欄位預設空白
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
@@ -608,6 +608,7 @@
                 .replace(/'/g, '&#039;');
         }
 
+        // 確保頁面載動時正確初始化應用程式與事件綁定
         window.onload = initApp;
     </script>
 </body>
