@@ -100,11 +100,22 @@
                 </h2>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">人員 / 訪客名稱</label>
-                        <input type="text" id="person-name" placeholder="例如：mer-66" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
+                        <label class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">病患床號</label>
+                        <!-- 結合 datalist 達成可點選與可手動輸入 -->
+                        <input type="text" id="person-name" list="room-options" placeholder="例如：MER-999 或手動輸入" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
+                        <datalist id="room-options">
+                            <option value="MER-999">
+                            <option value="SER-999">
+                            <option value="9595"> 
+                        </datalist>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">備註說明 / 代號 (選填)</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                            <label class="block text-xs font-medium text-slate-500">放射師卡號</label>
+                            <button type="button" id="unlock-card-btn" style="font-size: 0.75rem; color: #4f46e5; background: none; border: none; cursor: pointer; display: none;">
+                                <i class="fa-solid fa-lock-open mr-1"></i>解鎖修改
+                            </button>
+                        </div>
                         <input type="text" id="note-text" placeholder="例如：3103" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
                     </div>
                     <button id="notify-btn" style="width:100%; background:linear-gradient(to right, #4f46e5, #7c3aed); color:white; font-weight:bold; padding:0.875rem; border-radius:0.75rem; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; gap:0.5rem;">
@@ -188,12 +199,13 @@
 
     <script>
         // === 在這裡直接填入您的 Google Apps Script 網址 ===
-        let scriptUrl = "https://script.google.com/macros/s/您的指令碼ID/exec";
+        let scriptUrl = "https://script.google.com/macros/s/AKfycbxD6SlfJKFgXrvZTifjReDEwysDER0M_oiZQeBh62blHJve0NrgQNT69QDFcKW_DjEjbg/exec";
 
         const liveClockEl = document.getElementById('live-clock');
         const liveDateEl = document.getElementById('live-date');
         const personNameInput = document.getElementById('person-name');
         const noteTextInput = document.getElementById('note-text');
+        const unlockCardBtn = document.getElementById('unlock-card-btn');
         const notifyBtn = document.getElementById('notify-btn');
         const pendingContainer = document.getElementById('pending-container');
         const pendingCountBadge = document.getElementById('pending-count-badge');
@@ -285,10 +297,16 @@
         }
 
         function initApp() {
-            loadLocalData(); // 載入資料並在內部進行跨日檢查與自動清除
+            loadLocalData(); 
             updateClock();
-            setInterval(updateClock, 1000); // 每秒更新時鐘與定時跨日監控
+            setInterval(updateClock, 1000); 
             
+            const savedCard = localStorage.getItem('locked_radiographer');
+            if (savedCard) {
+                noteTextInput.value = savedCard;
+                setCardLocked(true);
+            }
+
             customModal.classList.add('hidden');
             if (scriptUrl && scriptUrl.indexOf("script.google.com") !== -1) {
                 syncStatus.textContent = '已連結雲端';
@@ -301,12 +319,27 @@
             }
         }
 
+        function setCardLocked(isLocked) {
+            if (isLocked) {
+                noteTextInput.setAttribute('readonly', true);
+                noteTextInput.style.backgroundColor = '#e2e8f0';
+                unlockCardBtn.style.display = 'inline-block';
+            } else {
+                noteTextInput.removeAttribute('readonly');
+                noteTextInput.style.backgroundColor = '#f8fafc';
+                unlockCardBtn.style.display = 'none';
+            }
+        }
+
+        unlockCardBtn.onclick = () => {
+            setCardLocked(false);
+            noteTextInput.focus();
+        };
+
         function updateClock() {
             const now = getTaiwanDate();
             liveClockEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
             liveDateEl.textContent = getTaiwanDateString();
-            
-            // 每秒鐘隨時比對日期，如果跨日就立刻清空畫面
             checkNewDayReset();
         }
 
@@ -315,7 +348,6 @@
             const lastSavedDate = localStorage.getItem('two_step_date') || '';
             
             if (lastSavedDate && lastSavedDate !== todayStr) {
-                // 如果日期不同（代表跨天了），清空前端畫面顯示紀錄與暫存
                 pendingList = [];
                 completedRecords = [];
                 saveLocalData();
@@ -330,7 +362,6 @@
                 const todayStr = getTaiwanDateString();
                 const lastSavedDate = localStorage.getItem('two_step_date') || '';
 
-                // 如果重新整理時發現日期不同（代表隔天了），強制清空前端與暫存
                 if (lastSavedDate && lastSavedDate !== todayStr) {
                     pendingList = [];
                     completedRecords = [];
@@ -368,10 +399,19 @@
 
         notifyBtn.onclick = () => {
             const personName = personNameInput.value.trim();
+            const radiographerCard = noteTextInput.value.trim();
+
             if (!personName) {
-                showModal('欄位未填寫', '請先輸入人員或訪客名稱！', 'warning');
+                showModal('欄位未填寫', '請先輸入病患床號！', 'warning');
                 return;
             }
+            if (!radiographerCard) {
+                showModal('欄位未填寫', '請輸入護理師卡號！', 'warning');
+                return;
+            }
+
+            localStorage.setItem('locked_radiographer', radiographerCard);
+            setCardLocked(true);
 
             playBeep('notify'); 
 
@@ -381,7 +421,7 @@
                 name: personName,
                 notifyTime: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`,
                 notifyTimestamp: now.getTime(),
-                note: noteTextInput.value.trim() || '',
+                note: radiographerCard, 
                 _status: 'PENDING'
             };
 
@@ -391,7 +431,6 @@
             upsertSingleItemToCloud(newItem);
 
             personNameInput.value = '';
-            noteTextInput.value = '';
         };
 
         window.confirmArrival = function(id) {
@@ -408,11 +447,11 @@
             const completedItem = {
                 id: item.id,
                 name: item.name,
-                cardNumber: '', 
+                cardNumber: item.note || '', 
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
-                note: item.note,
+                note: '', 
                 completedAt: now.toLocaleString(),
                 _status: 'COMPLETED'
             };
@@ -497,7 +536,7 @@
                         <span style="font-weight:700; color:#0f172a; font-size:1rem;">${escapeHtml(item.name)}</span>
                         <span style="font-size:0.75rem; background:#fef3c7; color:#92400e; padding:0.25rem 0.625rem; border-radius:9999px; font-family:monospace; font-weight:bold;"><i class="fa-solid fa-bell mr-1"></i>${formatTimeDisplay(item.notifyTime)}</span>
                     </div>
-                    ${item.note ? `<div style="font-size:0.75rem; color:#475569; font-style:italic;">備註：${escapeHtml(item.note)}</div>` : ''}
+                    ${item.note ? `<div style="font-size:0.75rem; color:#475569; font-style:italic;">護理師卡號：${escapeHtml(item.note)}</div>` : ''}
                     <div style="display:flex; align-items:center; gap:0.5rem; padding-top:0.25rem;">
                         <button onclick="confirmArrival(${item.id})" style="flex-grow:1; background:#059669; color:white; font-size:0.875rem; font-weight:bold; padding:0.625rem 0.75rem; border-radius:0.75rem; display:flex; align-items:center; justify-content:center; gap:0.375rem;">
                             <i class="fa-solid fa-check-circle"></i><span>人員已抵達 (打卡計時)</span>
@@ -536,7 +575,6 @@
                         <div style="display:flex; align-items:center; gap:0.5rem;">
                             <span style="font-size:0.75rem; font-weight:bold; background:#e0e7ff; color:#4f46e5; padding:0.125rem 0.375rem; border-radius:0.375rem;">#${completedRecords.length - index}</span>
                             <span style="font-weight:700; color:#0f172a; font-size:0.9375rem;">${escapeHtml(rec.name)}</span>
-                            ${rec.note ? `<span style="font-size:0.75rem; background:#f1f5f9; color:#64748b; padding:0.125rem 0.375rem; border-radius:0.375rem;">備註: ${escapeHtml(rec.note)}</span>` : ''}
                         </div>
                         <div style="display:flex; align-items:center; gap:0.75rem;">
                             <span style="font-size:0.875rem; font-weight:bold; color:#4f46e5;"><i class="fa-regular fa-clock mr-1"></i>${waitMin} 分鐘</span>
@@ -549,8 +587,8 @@
                             <span>抵達：<strong style="color:#059669; font-family:monospace;">${formatTimeDisplay(rec.arrivalTime)}</strong></span>
                         </div>
                         <div style="display:flex; align-items:center; gap:0.375rem;">
-                            <span style="font-size:10px;">卡號：</span>
-                            <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:white; border:1px solid #cbd5e1; border-radius:0.375rem; padding:0.125rem 0.375rem; font-size:0.75rem; width:80px;">
+                            <span style="font-size:10px;">護理師卡號：</span>
+                            <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入護理師卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:white; border:1px solid #cbd5e1; border-radius:0.375rem; padding:0.125rem 0.375rem; font-size:0.75rem; width:80px;">
                         </div>
                     </div>
                 `;
