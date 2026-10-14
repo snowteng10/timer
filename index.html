@@ -101,7 +101,6 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">病患床號</label>
-                        <!-- 結合 datalist 達成可點選與可手動輸入 -->
                         <input type="text" id="person-name" list="room-options" placeholder="例如：MER-999 或手動輸入" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
                         <datalist id="room-options">
                             <option value="MER-999">
@@ -198,7 +197,6 @@
     </div>
 
     <script>
-        // === 在這裡直接填入您的 Google Apps Script 網址 ===
         let scriptUrl = "https://script.google.com/macros/s/AKfycbxD6SlfJKFgXrvZTifjReDEwysDER0M_oiZQeBh62blHJve0NrgQNT69QDFcKW_DjEjbg/exec";
 
         const liveClockEl = document.getElementById('live-clock');
@@ -447,7 +445,7 @@
             const completedItem = {
                 id: item.id,
                 name: item.name,
-                cardNumber: item.note || '', 
+                cardNumber: '', // 修改此處使右側卡號欄位預設空白
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
