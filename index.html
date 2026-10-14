@@ -404,7 +404,7 @@
                 return;
             }
             if (!radiographerCard) {
-                showModal('欄位未填寫', '請輸入護理師卡號！', 'warning');
+                showModal('欄位未填寫', '請輸入放射師卡號！', 'warning');
                 return;
             }
 
@@ -445,11 +445,11 @@
             const completedItem = {
                 id: item.id,
                 name: item.name,
-                cardNumber: '', // 右側卡號欄位預設空白
+                cardNumber: '', // 右側初始預設空白
+                note: '',       // 同步將備註/卡號欄位留空，等待後續手動輸入
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
-                note: '', 
                 completedAt: now.toLocaleString(),
                 _status: 'COMPLETED'
             };
@@ -466,7 +466,9 @@
         window.updateCardNumber = function(id, newCardVal) {
             const rec = completedRecords.find(r => r.id === id);
             if (rec) {
-                rec.cardNumber = newCardVal.trim();
+                const trimmedVal = newCardVal.trim();
+                rec.cardNumber = trimmedVal;
+                rec.note = trimmedVal; // 同步雙向欄位，確保後端雲端可以抓取到卡號
                 rec._status = 'COMPLETED';
                 saveLocalData();
                 clearTimeout(saveTimeouts[id]);
@@ -500,10 +502,16 @@
             if (!scriptUrl || scriptUrl.indexOf("script.google.com") === -1) return;
             syncStatus.textContent = '同步中...';
             try {
+                // 確保發送給雲端的資料同時帶有 cardNumber 與 note 屬性，避免後端漏接
+                const payload = {
+                    ...item,
+                    cardNumber: item.cardNumber || '',
+                    note: item.note || item.cardNumber || ''
+                };
                 await fetch(scriptUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'upsert', data: item })
+                    body: JSON.stringify({ action: 'upsert', data: payload })
                 });
                 syncStatus.textContent = '已連結雲端';
                 syncStatus.style.background = '#d1fae5';
@@ -608,7 +616,6 @@
                 .replace(/'/g, '&#039;');
         }
 
-        // 確保頁面載動時正確初始化應用程式與事件綁定
         window.onload = initApp;
     </script>
 </body>
