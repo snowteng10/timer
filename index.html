@@ -593,8 +593,8 @@
                             <span>抵達：<strong style="color:#059669; font-family:monospace;">${formatTimeDisplay(rec.arrivalTime)}</strong></span>
                         </div>
                         <div style="display:flex; align-items:center; gap:0.5rem;">
-                            <span style="font-size:0.8125rem; font-weight:500; color:#334155;">護理師卡號：</span>
-                            <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:white; border:1px solid #cbd5e1; border-radius:0.5rem; padding:0.25rem 0.5rem; font-size:0.9375rem; font-weight:bold; width:110px;">
+                            <span style="font-size:0.9375rem; font-weight:500; color:#334155;">護理師卡號：</span>
+                            <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:#fdf2f8; border:1px solid #f472b6; border-radius:0.5rem; padding:0.25rem 0.5rem; font-size:0.9375rem; font-weight:bold; width:110px; color:#be185d;">
                         </div>
                     </div>
                 `;
