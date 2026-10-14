@@ -101,22 +101,11 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">病患床號</label>
-                        <!-- 結合 datalist 達成可點選與可手動輸入 -->
-                        <input type="text" id="person-name" list="room-options" placeholder="例如：MER-6 點選或手動輸入" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
-                        <datalist id="room-options">
-                            <option value="MER-999">
-                            <option value="SER-999">
-                            <option value="9595">
-                        </datalist>
+                        <input type="text" id="person-name" placeholder="例如：MER-6 點選或手動輸入" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
                     </div>
                     <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                            <label class="block text-xs font-medium text-slate-500">放射師卡號</label>
-                            <button type="button" id="unlock-card-btn" style="font-size: 0.75rem; color: #4f46e5; background: none; border: none; cursor: pointer; display: none;">
-                                <i class="fa-solid fa-lock-open mr-1"></i>解鎖修改
-                            </button>
-                        </div>
-                        <input type="text" id="note-text" placeholder="例如：3103" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
+                        <label class="block text-xs font-medium text-slate-500 mb-1" style="display:block; margin-bottom:0.25rem;">護理師卡號 (選填)</label>
+                        <input type="text" id="note-text" placeholder="例如：輸入卡號" style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:0.75rem; padding:0.75rem; font-size:1rem;">
                     </div>
                     <button id="notify-btn" style="width:100%; background:linear-gradient(to right, #4f46e5, #7c3aed); color:white; font-weight:bold; padding:0.875rem; border-radius:0.75rem; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; gap:0.5rem;">
                         <i class="fa-solid fa-bell"></i>
@@ -132,9 +121,9 @@
                     </span>
                     <span id="pending-count-badge" style="background:#fef3c7; color:#92400e; font-size:0.75rem; padding:0.125rem 0.625rem; border-radius:9999px; font-weight:bold;">0</span>
                 </h2>
-                <p class="text-xs text-slate-400 mb-4">點擊「人員已抵達」即刻鎖定抵達時間並移至右側。</p>
+                <p class="text-xs text-slate-400 mb-4">點擊「護理師已抵達」即刻鎖定抵達時間並移至右側。</p>
                 <div id="pending-container" class="space-y-3" style="max-height:380px; overflow-y:auto;">
-                    <div id="pending-empty" style="text-align:center; padding:1.5rem 0; color:#94a3b8; font-size:0.875rem;">目前沒有等待抵達的人員</div>
+                    <div id="pending-empty" style="text-align:center; padding:1.5rem 0; color:#94a3b8; font-size:0.875rem;">目前沒有等待抵達的護理師</div>
                 </div>
             </div>
         </div>
@@ -199,13 +188,12 @@
 
     <script>
         // === 在這裡直接填入您的 Google Apps Script 網址 ===
-        let scriptUrl = "https://script.google.com/macros/s/AKfycbxD6SlfJKFgXrvZTifjReDEwysDER0M_oiZQeBh62blHJve0NrgQNT69QDFcKW_DjEjbg/exec";
+        let scriptUrl = "https://script.google.com/macros/s/您的指令碼ID/exec";
 
         const liveClockEl = document.getElementById('live-clock');
         const liveDateEl = document.getElementById('live-date');
         const personNameInput = document.getElementById('person-name');
         const noteTextInput = document.getElementById('note-text');
-        const unlockCardBtn = document.getElementById('unlock-card-btn');
         const notifyBtn = document.getElementById('notify-btn');
         const pendingContainer = document.getElementById('pending-container');
         const pendingCountBadge = document.getElementById('pending-count-badge');
@@ -299,14 +287,8 @@
         function initApp() {
             loadLocalData(); 
             updateClock();
-            setInterval(updateClock, 1000); 
+            setInterval(updateClock, 1000);
             
-            const savedCard = localStorage.getItem('locked_radiographer');
-            if (savedCard) {
-                noteTextInput.value = savedCard;
-                setCardLocked(true);
-            }
-
             customModal.classList.add('hidden');
             if (scriptUrl && scriptUrl.indexOf("script.google.com") !== -1) {
                 syncStatus.textContent = '已連結雲端';
@@ -318,23 +300,6 @@
                 syncStatus.style.color = '#c92a2a';
             }
         }
-
-        function setCardLocked(isLocked) {
-            if (isLocked) {
-                noteTextInput.setAttribute('readonly', true);
-                noteTextInput.style.backgroundColor = '#e2e8f0';
-                unlockCardBtn.style.display = 'inline-block';
-            } else {
-                noteTextInput.removeAttribute('readonly');
-                noteTextInput.style.backgroundColor = '#f8fafc';
-                unlockCardBtn.style.display = 'none';
-            }
-        }
-
-        unlockCardBtn.onclick = () => {
-            setCardLocked(false);
-            noteTextInput.focus();
-        };
 
         function updateClock() {
             const now = getTaiwanDate();
@@ -399,19 +364,10 @@
 
         notifyBtn.onclick = () => {
             const personName = personNameInput.value.trim();
-            const radiographerCard = noteTextInput.value.trim();
-
             if (!personName) {
                 showModal('欄位未填寫', '請先輸入病患床號！', 'warning');
                 return;
             }
-            if (!radiographerCard) {
-                showModal('欄位未填寫', '請輸入護理師卡號！', 'warning');
-                return;
-            }
-
-            localStorage.setItem('locked_radiographer', radiographerCard);
-            setCardLocked(true);
 
             playBeep('notify'); 
 
@@ -421,7 +377,7 @@
                 name: personName,
                 notifyTime: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`,
                 notifyTimestamp: now.getTime(),
-                note: radiographerCard, 
+                note: noteTextInput.value.trim() || '',
                 _status: 'PENDING'
             };
 
@@ -431,6 +387,7 @@
             upsertSingleItemToCloud(newItem);
 
             personNameInput.value = '';
+            noteTextInput.value = '';
         };
 
         window.confirmArrival = function(id) {
@@ -447,11 +404,11 @@
             const completedItem = {
                 id: item.id,
                 name: item.name,
-                cardNumber: item.note || '', 
+                cardNumber: item.note || '', // 自動將步驟一輸入的卡號帶入，若無則保持空白
                 notifyTime: item.notifyTime,
                 arrivalTime: arrivalTimeStr,
                 waitingMinutes: diffMinutesRounded,
-                note: '', 
+                note: item.note,
                 completedAt: now.toLocaleString(),
                 _status: 'COMPLETED'
             };
@@ -525,7 +482,7 @@
             pendingContainer.innerHTML = '';
             pendingCountBadge.textContent = pendingList.length;
             if (pendingList.length === 0) {
-                pendingContainer.innerHTML = `<div style="text-align:center; padding:1.5rem 0; color:#94a3b8; font-size:0.875rem;">目前沒有等待抵達的人員</div>`;
+                pendingContainer.innerHTML = `<div style="text-align:center; padding:1.5rem 0; color:#94a3b8; font-size:0.875rem;">目前沒有等待抵達的護理師</div>`;
                 return;
             }
             pendingList.forEach(item => {
@@ -536,10 +493,10 @@
                         <span style="font-weight:700; color:#0f172a; font-size:1rem;">${escapeHtml(item.name)}</span>
                         <span style="font-size:0.75rem; background:#fef3c7; color:#92400e; padding:0.25rem 0.625rem; border-radius:9999px; font-family:monospace; font-weight:bold;"><i class="fa-solid fa-bell mr-1"></i>${formatTimeDisplay(item.notifyTime)}</span>
                     </div>
-                    ${item.note ? `<div style="font-size:0.75rem; color:#475569; font-style:italic;">放射師卡號：${escapeHtml(item.note)}</div>` : ''}
+                    ${item.note ? `<div style="font-size:0.75rem; color:#475569; font-style:italic;">卡號：${escapeHtml(item.note)}</div>` : ''}
                     <div style="display:flex; align-items:center; gap:0.5rem; padding-top:0.25rem;">
                         <button onclick="confirmArrival(${item.id})" style="flex-grow:1; background:#059669; color:white; font-size:0.875rem; font-weight:bold; padding:0.625rem 0.75rem; border-radius:0.75rem; display:flex; align-items:center; justify-content:center; gap:0.375rem;">
-                            <i class="fa-solid fa-check-circle"></i><span>人員已抵達 (打卡計時)</span>
+                            <i class="fa-solid fa-check-circle"></i><span>護理師已抵達 (打卡計時)</span>
                         </button>
                         <button onclick="removePending(${item.id})" style="color:#94a3b8; padding:0.5rem;"><i class="fa-solid fa-xmark"></i></button>
                     </div>
@@ -588,7 +545,7 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:0.375rem;">
                             <span style="font-size:10px;">護理師卡號：</span>
-                            <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入護理師卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:white; border:1px solid #cbd5e1; border-radius:0.375rem; padding:0.125rem 0.375rem; font-size:0.75rem; width:80px;">
+                            <input type="text" value="${escapeHtml(rec.cardNumber || '')}" placeholder="輸入卡號" oninput="updateCardNumber(${rec.id}, this.value)" style="background:white; border:1px solid #cbd5e1; border-radius:0.375rem; padding:0.125rem 0.375rem; font-size:0.75rem; width:80px;">
                         </div>
                     </div>
                 `;
